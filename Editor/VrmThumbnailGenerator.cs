@@ -6,7 +6,7 @@ using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace Fara.Fara_VRMMultiConverter.Editor
+namespace Fara.FaraVRMMultiConverter.Editor
 {
     /// <summary>
     /// VRMアバターのサムネイル画像を生成するヘルパークラス
@@ -176,6 +176,8 @@ namespace Fara.Fara_VRMMultiConverter.Editor
             public CameraClearFlags OriginalClearFlags;
             public Color OriginalBackgroundColor;
             public float OriginalFieldOfView;
+            public int OriginalCullingMask;
+            public float OriginalNearClip;
         }
 
         private static CameraInfo SetupCamera(GameObject avatarInstance)
@@ -211,9 +213,15 @@ namespace Fara.Fara_VRMMultiConverter.Editor
                 info.OriginalClearFlags = info.Camera.clearFlags;
                 info.OriginalBackgroundColor = info.Camera.backgroundColor;
                 info.OriginalFieldOfView = info.Camera.fieldOfView;
+                info.OriginalCullingMask = info.Camera.cullingMask;
+                info.OriginalNearClip = info.Camera.nearClipPlane;
 
                 Debug.Log("既存カメラの状態を保存しました");
             }
+
+            // 近づいてもアバターが消えないように
+            info.Camera.cullingMask = ~0;
+            info.Camera.nearClipPlane = 0.01f;
 
             PositionCamera(info.Camera, avatarInstance);
 
@@ -222,26 +230,21 @@ namespace Fara.Fara_VRMMultiConverter.Editor
 
         private static void PositionCamera(Camera camera, GameObject avatarInstance)
         {
-            var renderers = avatarInstance.GetComponentsInChildren<Renderer>();
-            Debug.Log($"アバターのレンダラー数: {renderers.Length}");
+            // アバターは原点にある前提で、標準的なバストアップ位置に固定
+            // Bounds計算を省略することで処理速度を向上
+            camera.transform.position = new Vector3(0, 1.4f, 0.5f); // 少し近めに配置
+            camera.transform.LookAt(new Vector3(0, 1.4f, 0));
 
-            if (renderers.Length > 0)
-            {
-                // すべてのレンダラーを含むバウンディングボックスを計算
-                var bounds = renderers[0].bounds;
-                foreach (var renderer in renderers)
-                {
-                    if (renderer.enabled)
-                    {
-                        bounds.Encapsulate(renderer.bounds);
-                    }
-                }
+            // アバターの高さに合わせて微調整が必要な場合はここで行う
+            var animator = avatarInstance.GetComponent<Animator>();
+            if (!animator || !animator.isHuman) return;
 
-                Debug.Log($"バウンディングボックス - Center: {bounds.center}, Size: {bounds.size}");
-            }
+            var head = animator.GetBoneTransform(HumanBodyBones.Head);
+            if (!head) return;
 
-            camera.transform.position = new Vector3(0, 0.8f, 1.5f);
-            camera.transform.LookAt(new Vector3(0, 0.8f, 0));
+            var headPos = head.position;
+            camera.transform.position = headPos + avatarInstance.transform.forward * 0.4f;
+            camera.transform.LookAt(headPos);
         }
 
         private static Texture2D RenderThumbnail(Camera camera, int resolution)
@@ -294,6 +297,8 @@ namespace Fara.Fara_VRMMultiConverter.Editor
                 info.Camera.clearFlags = info.OriginalClearFlags;
                 info.Camera.backgroundColor = info.OriginalBackgroundColor;
                 info.Camera.fieldOfView = info.OriginalFieldOfView;
+                info.Camera.cullingMask = info.OriginalCullingMask;
+                info.Camera.nearClipPlane = info.OriginalNearClip;
             }
         }
 
@@ -310,7 +315,8 @@ namespace Fara.Fara_VRMMultiConverter.Editor
             Debug.Log($"✓ ファイルに書き込みました: {bytes.Length} bytes");
 
             // Refreshの代わりに同期インポートして参照可能にする
-            AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
+            AssetDatabase.ImportAsset(assetPath,
+                ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
 
             var savedThumbnail = AssetDatabase.LoadAssetAtPath<Texture2D>(assetPath);
             if (savedThumbnail)

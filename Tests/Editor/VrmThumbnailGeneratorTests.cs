@@ -1,5 +1,5 @@
 ﻿using NUnit.Framework;
-using Fara.Fara_VRMMultiConverter.Editor;
+using Fara.FaraVRMMultiConverter.Editor;
 
 namespace Fara.Tests.Editor
 {

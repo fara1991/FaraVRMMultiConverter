@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Esperecyan.UniVRMExtensions;
 using nadena.dev.ndmf;
 using UnityEditor;
 using UnityEngine;
 
-namespace Fara.Fara_VRMMultiConverter.Editor
+namespace Fara.FaraVRMMultiConverter.Editor
 {
     /// <summary>
     /// VRChatアバターをVRMに変換するロジックを担当するクラス
@@ -22,10 +21,6 @@ namespace Fara.Fara_VRMMultiConverter.Editor
         private readonly bool _isVrmComponentCopy;
         private readonly GameObject _baseVrmPrefab;
         private readonly DeleteSpecificObjectsSettings _deleteSettings;
-        private bool _isBatchMode;
-
-        // 変換セッション中に新しく生成されたアセットを管理するキャッシュ
-        private readonly Dictionary<UnityEngine.Object, UnityEngine.Object> _assetCopyCache = new();
 
         public VrmAvatarConverter(
             string vrmOutputPath,
@@ -45,31 +40,23 @@ namespace Fara.Fara_VRMMultiConverter.Editor
             _isVrmComponentCopy = isVrmComponentCopy;
             _baseVrmPrefab = baseVrmPrefab;
             _deleteSettings = settings;
-            _isBatchMode = false;
         }
-
-        public void SetBatchMode(bool isBatchMode) => _isBatchMode = isBatchMode;
 
         public bool ConvertSingleAvatar(GameObject selectedVrcPrefab)
         {
             GameObject vrcAvatarInstance = null;
             GameObject bakedAvatar = null;
-            _assetCopyCache.Clear();
-
             try
             {
                 if (!selectedVrcPrefab) return false;
 
-                // 開始前にエディタのキャッシュ（VRMプレビュー等）をクリーンアップ
-                Selection.activeObject = null;
-                ResetUniVrmCache();
                 EditorUtility.UnloadUnusedAssetsImmediate();
 
                 // 1. Hierarchyにインスタンスを生成
                 vrcAvatarInstance = UnityEngine.Object.Instantiate(selectedVrcPrefab);
                 if (!vrcAvatarInstance) return false;
 
-                string avatarName = selectedVrcPrefab.name.Replace("(Clone)", "").Replace("Variant", "").Trim();
+                var avatarName = selectedVrcPrefab.name.Replace("(Clone)", "").Replace("Variant", "").Trim();
                 vrcAvatarInstance.name = avatarName;
 
                 // 不要なオブジェクトの削除
@@ -80,7 +67,12 @@ namespace Fara.Fara_VRMMultiConverter.Editor
                 try
                 {
                     Debug.Log($"[Bake] {avatarName} のベイクを開始");
-                    AvatarProcessor.ProcessAvatar(vrcAvatarInstance);
+                    var uniqueTempDir = $"Assets/ZZZ_GeneratedAssets_{avatarName}_{Guid.NewGuid().ToString()[..8]}";
+
+                    using (new OverrideTemporaryDirectoryScope(uniqueTempDir))
+                    {
+                        AvatarProcessor.ProcessAvatar(vrcAvatarInstance);
+                    }
 
                     bakedAvatar = FindBakedAvatar(vrcAvatarInstance.name);
                     if (!bakedAvatar) return false;
@@ -97,9 +89,6 @@ namespace Fara.Fara_VRMMultiConverter.Editor
                 bakedAvatar.name = avatarName;
                 bakedAvatar.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
 
-                ConsolidateMaterials(bakedAvatar);
-                ProtectAssetsInHierarchy(bakedAvatar, avatarName);
-
                 // NDMF が生成した一時キャッシュを解放してプレハブ保存に備える
                 EditorUtility.UnloadUnusedAssetsImmediate();
 
@@ -108,37 +97,17 @@ namespace Fara.Fara_VRMMultiConverter.Editor
                 var prefabCreator = new VrmPrefabCreator(_vrmOutputPath);
                 var vrmPrefabPath = prefabCreator.CreateVrmPrefab(bakedAvatar);
 
-                // Hierarchy上のオブジェクトは役割を終えたので破棄
-                if (bakedAvatar) UnityEngine.Object.DestroyImmediate(bakedAvatar);
-                if (vrcAvatarInstance) UnityEngine.Object.DestroyImmediate(vrcAvatarInstance);
-
                 if (string.IsNullOrEmpty(vrmPrefabPath)) return false;
 
                 // 5. VRMセットアップ
                 // 生成されたプレハブを一度Unityに再認識させる
                 AssetDatabase.ImportAsset(vrmPrefabPath, ImportAssetOptions.ForceUpdate);
-
-                // VRMInitializerを実行。内部でアセットの読み込み・コンポーネント付与・保存が完結します
                 VRMInitializer.Initialize(vrmPrefabPath);
 
                 // 6. コピー元のVRMアバターがあれば設定をコピー
-                if (_isVrmComponentCopy && _baseVrmPrefab)
-                {
-                    CopySettingsFromBase(vrmPrefabPath);
-                }
+                if (_isVrmComponentCopy && _baseVrmPrefab) CopySettingsFromBase(vrmPrefabPath);
 
-                // 7. メタ情報とサムネイルの更新
-                VrmMetaUpdater.UpdateMeta(vrmPrefabPath, avatarName, _vrmVersion, _vrmAuthor, _vrmThumbnailPath,
-                    _thumbnailResolution, skipRefresh: true);
-
-                // VRM内部アセット（BlendShapeClip等）の整理
-                FinalizeVrmInternalAssets(vrmPrefabPath, avatarName);
-
-                if (_isVrmComponentCopy && _baseVrmPrefab)
-                {
-                    ApplyIsBinarySettings(vrmPrefabPath);
-                }
-
+                UpdateAndFinalizeVrm(vrmPrefabPath, avatarName);
                 return true;
             }
             catch (Exception e)
@@ -151,207 +120,35 @@ namespace Fara.Fara_VRMMultiConverter.Editor
                 // 異常終了時も確実にHierarchyを掃除する
                 if (vrcAvatarInstance) UnityEngine.Object.DestroyImmediate(vrcAvatarInstance);
                 if (bakedAvatar) UnityEngine.Object.DestroyImmediate(bakedAvatar);
-
-                AssetDatabase.SaveAssets();
-                AssetDatabase.Refresh();
             }
-        }
-
-        private void ProtectAssetsInHierarchy(GameObject targetAvatar, string avatarName)
-        {
-            var generatedAssetFolder = $"{_vrmOutputPath}/{avatarName}.Generated";
-            if (!AssetDatabase.IsValidFolder(generatedAssetFolder))
-            {
-                if (!AssetDatabase.IsValidFolder(_vrmOutputPath))
-                {
-                    System.IO.Directory.CreateDirectory(_vrmOutputPath);
-                    AssetDatabase.ImportAsset(_vrmOutputPath);
-                }
-
-                AssetDatabase.CreateFolder(_vrmOutputPath, $"{avatarName}.Generated");
-            }
-
-            foreach (var renderer in targetAvatar.GetComponentsInChildren<Renderer>(true))
-            {
-                if (renderer is SkinnedMeshRenderer skinnedRenderer && skinnedRenderer.sharedMesh)
-                {
-                    skinnedRenderer.sharedMesh = SaveAssetToFile(skinnedRenderer.sharedMesh, generatedAssetFolder);
-                }
-                else if (renderer is MeshRenderer meshRenderer &&
-                         meshRenderer.TryGetComponent<MeshFilter>(out var filter) && filter.sharedMesh)
-                {
-                    filter.sharedMesh = SaveAssetToFile(filter.sharedMesh, generatedAssetFolder);
-                }
-
-                var materials = renderer.sharedMaterials;
-                bool isChanged = false;
-                for (int i = 0; i < materials.Length; i++)
-                {
-                    if (materials[i] == null) continue;
-                    var savedMaterial = SaveAssetToFile(materials[i], generatedAssetFolder);
-                    if (savedMaterial != materials[i])
-                    {
-                        materials[i] = savedMaterial;
-                        isChanged = true;
-                    }
-                }
-
-                if (isChanged) renderer.sharedMaterials = materials;
-            }
-
-            AssetDatabase.SaveAssets();
-        }
-
-        private T SaveAssetToFile<T>(T sourceAsset, string targetDir) where T : UnityEngine.Object
-        {
-            if (sourceAsset == null) return null;
-            if (_assetCopyCache.TryGetValue(sourceAsset, out var cached) && cached is T typedCached) return typedCached;
-
-            var currentAssetPath = AssetDatabase.GetAssetPath(sourceAsset);
-            bool isTemporaryAsset = string.IsNullOrEmpty(currentAssetPath) ||
-                                    currentAssetPath.Contains("ZZZ_GeneratedAssets") ||
-                                    currentAssetPath.StartsWith("Packages/");
-            if (!isTemporaryAsset) return sourceAsset;
-
-            string shortId = sourceAsset.GetInstanceID().ToString("X");
-            string extension = sourceAsset is Material ? ".mat" : ".asset";
-            string fileName = $"{sourceAsset.name}_{shortId}{extension}";
-            string savePath = $"{targetDir}/{fileName}";
-
-            var copyInstance = UnityEngine.Object.Instantiate(sourceAsset);
-            copyInstance.name = sourceAsset.name;
-
-            if (copyInstance is Material materialInstance)
-            {
-                SaveReferencedTextures(materialInstance, targetDir);
-            }
-
-            AssetDatabase.CreateAsset(copyInstance, savePath);
-            _assetCopyCache[sourceAsset] = copyInstance;
-            return copyInstance;
-        }
-
-        private void SaveReferencedTextures(Material material, string targetDir)
-        {
-            var shader = material.shader;
-            int propertyCount = ShaderUtil.GetPropertyCount(shader);
-            for (int i = 0; i < propertyCount; i++)
-            {
-                if (ShaderUtil.GetPropertyType(shader, i) != ShaderUtil.ShaderPropertyType.TexEnv) continue;
-                string propertyName = ShaderUtil.GetPropertyName(shader, i);
-                Texture texture = material.GetTexture(propertyName);
-                if (texture)
-                {
-                    var savedTexture = SaveTextureToFile(texture, targetDir);
-                    if (savedTexture && savedTexture != texture)
-                    {
-                        material.SetTexture(propertyName, savedTexture);
-                        EditorUtility.SetDirty(material);
-                    }
-                }
-            }
-        }
-
-        private Texture SaveTextureToFile(Texture sourceTexture, string targetDir)
-        {
-            if (sourceTexture == null) return null;
-            if (_assetCopyCache.TryGetValue(sourceTexture, out var cached) && cached is Texture typedCached)
-                return typedCached;
-
-            var originalAssetPath = AssetDatabase.GetAssetPath(sourceTexture);
-            string shortId = sourceTexture.GetInstanceID().ToString("X");
-            string extension = string.IsNullOrEmpty(originalAssetPath) ? ".png" : Path.GetExtension(originalAssetPath);
-            if (string.IsNullOrEmpty(extension)) extension = ".png";
-
-            string fileName = $"{sourceTexture.name}_{shortId}{extension}";
-            string savePath = $"{targetDir}/{fileName}";
-
-            Texture resultTexture = null;
-            if (!string.IsNullOrEmpty(originalAssetPath) && File.Exists(originalAssetPath))
-            {
-                if (AssetDatabase.CopyAsset(originalAssetPath, savePath))
-                {
-                    AssetDatabase.ImportAsset(savePath, ImportAssetOptions.ForceUpdate);
-                    AssetDatabase.SaveAssets();
-                    resultTexture = AssetDatabase.LoadAssetAtPath<Texture>(savePath);
-                }
-            }
-
-            if (!resultTexture)
-            {
-                var readableTexture = CreateReadableTextureCopy(sourceTexture);
-                if (readableTexture)
-                {
-                    var systemPath = Path.Combine(Application.dataPath, savePath.Substring(7));
-                    File.WriteAllBytes(systemPath, readableTexture.EncodeToPNG());
-                    AssetDatabase.ImportAsset(savePath, ImportAssetOptions.ForceUpdate);
-                    AssetDatabase.SaveAssets();
-                    resultTexture = AssetDatabase.LoadAssetAtPath<Texture>(savePath);
-                    UnityEngine.Object.DestroyImmediate(readableTexture);
-                }
-            }
-
-            if (resultTexture) _assetCopyCache[sourceTexture] = resultTexture;
-            return resultTexture;
-        }
-
-        private Texture2D CreateReadableTextureCopy(Texture source)
-        {
-            if (!source) return null;
-            RenderTexture tempRT = RenderTexture.GetTemporary(source.width, source.height, 0,
-                RenderTextureFormat.Default, RenderTextureReadWrite.Linear);
-            Graphics.Blit(source, tempRT);
-            RenderTexture previousRT = RenderTexture.active;
-            RenderTexture.active = tempRT;
-
-            Texture2D readableTexture = new Texture2D(source.width, source.height, TextureFormat.RGBA32, false);
-            readableTexture.ReadPixels(new Rect(0, 0, tempRT.width, tempRT.height), 0, 0);
-            readableTexture.Apply();
-
-            RenderTexture.active = previousRT;
-            RenderTexture.ReleaseTemporary(tempRT);
-            return readableTexture;
         }
 
         private static GameObject FindBakedAvatar(string name)
-            => UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects()
-                .FirstOrDefault(obj => obj.name.Contains(name));
-
-        private void ConsolidateMaterials(GameObject targetAvatar)
         {
-            var renderers = targetAvatar.GetComponentsInChildren<Renderer>(true);
-            var materialNameMap = new Dictionary<string, Material>();
-            foreach (var renderer in renderers)
+            // 名前が完全一致するルートオブジェクトを優先的に探す
+            var rootObjs = UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects();
+            foreach (var obj in rootObjs)
             {
-                var materials = renderer.sharedMaterials;
-                bool isChanged = false;
-                for (int i = 0; i < materials.Length; i++)
-                {
-                    if (!materials[i]) continue;
-                    if (materialNameMap.TryGetValue(materials[i].name, out var existingMat))
-                    {
-                        if (materials[i] == existingMat) continue;
-                        materials[i] = existingMat;
-                        isChanged = true;
-                    }
-                    else materialNameMap.Add(materials[i].name, materials[i]);
-                }
-
-                if (isChanged) renderer.sharedMaterials = materials;
+                if (obj.name == name) return obj;
             }
+
+            // 見つからなければ部分一致
+            return rootObjs.FirstOrDefault(obj => obj.name.Contains(name));
         }
 
-        private void ResetUniVrmCache()
+        private void UpdateAndFinalizeVrm(string vrmPrefabPath, string avatarName)
         {
-            try
+            // まずメタ情報を更新（サムネイル等の割り当て）
+            VrmMetaUpdater.UpdateMeta(
+                vrmPrefabPath, avatarName, _vrmVersion, _vrmAuthor, _vrmThumbnailPath,　_thumbnailResolution);
+
+            // 次に内部アセット（BlendShape等）を物理ファイル化し、
+            // 最後に1回だけPrefabの参照を書き換えて保存する
+            FinalizeVrmInternalAssets(vrmPrefabPath, avatarName);
+
+            if (_isVrmComponentCopy && _baseVrmPrefab)
             {
-                var previewType = Type.GetType("VRM.PreviewSceneManager, VRM");
-                if (previewType == null) return;
-                foreach (var manager in GameObject.FindObjectsOfType(previewType))
-                    UnityEngine.Object.DestroyImmediate(((Component) manager).gameObject);
-            }
-            catch
-            {
+                ApplyIsBinarySettings(vrmPrefabPath);
             }
         }
 
@@ -366,7 +163,7 @@ namespace Fara.Fara_VRMMultiConverter.Editor
         private static void DeleteHideObjects(GameObject target)
         {
             var transforms = target.GetComponentsInChildren<Transform>(true);
-            for (int i = transforms.Length - 1; i >= 0; i--)
+            for (var i = transforms.Length - 1; i >= 0; i--)
             {
                 var transformInstance = transforms[i];
                 if (transformInstance && transformInstance.gameObject != target &&
@@ -389,6 +186,7 @@ namespace Fara.Fara_VRMMultiConverter.Editor
             var vrmPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(vrmPrefabPath);
             if (!vrmPrefab) return;
 
+            VRM.BlendShapeAvatar finalizedBlendShapeAvatar = null;
             var blendProxy = vrmPrefab.GetComponent<VRM.VRMBlendShapeProxy>();
             if (blendProxy && blendProxy.BlendShapeAvatar)
             {
@@ -402,7 +200,7 @@ namespace Fara.Fara_VRMMultiConverter.Editor
                     if (!sourceClip) continue;
                     var clipSavePath = $"{folderPath}/{sourceClip.name}.asset";
                     var clipCopy = UnityEngine.Object.Instantiate(sourceClip);
-                    if (baseProxy && baseProxy.BlendShapeAvatar != null)
+                    if (baseProxy && baseProxy.BlendShapeAvatar)
                     {
                         var baseClip = sourceClip.Preset != VRM.BlendShapePreset.Unknown
                             ? baseProxy.BlendShapeAvatar.GetClip(sourceClip.Preset)
@@ -416,24 +214,29 @@ namespace Fara.Fara_VRMMultiConverter.Editor
 
                 var newAvatar = ScriptableObject.CreateInstance<VRM.BlendShapeAvatar>();
                 newAvatar.Clips = clips;
+
                 AssetDatabase.CreateAsset(newAvatar, $"{folderPath}/BlendShape.asset");
                 AssetDatabase.SaveAssets();
-                using var scope = new PrefabUtility.EditPrefabContentsScope(vrmPrefabPath);
-                scope.prefabContentsRoot.GetComponent<VRM.VRMBlendShapeProxy>().BlendShapeAvatar =
+                finalizedBlendShapeAvatar =
                     AssetDatabase.LoadAssetAtPath<VRM.BlendShapeAvatar>($"{folderPath}/BlendShape.asset");
             }
 
-            var vrmMeta = vrmPrefab.GetComponent<VRM.VRMMeta>();
-            if (vrmMeta && vrmMeta.Meta)
+            var metaAssetPath = $"{_vrmOutputPath}/{avatarName}.MetaObject/Meta.asset";
+            var finalizedMeta = AssetDatabase.LoadAssetAtPath<VRM.VRMMetaObject>(metaAssetPath);
+
+            if (!finalizedBlendShapeAvatar && !finalizedMeta) return;
+
+            using var scope = new PrefabUtility.EditPrefabContentsScope(vrmPrefabPath);
+            if (finalizedBlendShapeAvatar)
             {
-                var metaAssetPath = $"{_vrmOutputPath}/{avatarName}.MetaObject/Meta.asset";
-                var finalizedMeta = AssetDatabase.LoadAssetAtPath<VRM.VRMMetaObject>(metaAssetPath);
-                if (finalizedMeta)
-                {
-                    using var scope = new PrefabUtility.EditPrefabContentsScope(vrmPrefabPath);
-                    scope.prefabContentsRoot.GetComponent<VRM.VRMMeta>().Meta = finalizedMeta;
-                }
+                scope.prefabContentsRoot.GetComponent<VRM.VRMBlendShapeProxy>().BlendShapeAvatar =
+                    finalizedBlendShapeAvatar;
             }
+
+            if (!finalizedMeta) return;
+
+            var metaComp = scope.prefabContentsRoot.GetComponent<VRM.VRMMeta>();
+            if (metaComp) metaComp.Meta = finalizedMeta;
         }
 
         private void ApplyIsBinarySettings(string vrmPrefabPath)
@@ -443,19 +246,19 @@ namespace Fara.Fara_VRMMultiConverter.Editor
             var baseProxy = _baseVrmPrefab.GetComponent<VRM.VRMBlendShapeProxy>();
             var destProxy = vrmPrefab.GetComponent<VRM.VRMBlendShapeProxy>();
             if (!baseProxy || !baseProxy.BlendShapeAvatar || !destProxy || !destProxy.BlendShapeAvatar) return;
-            bool changed = false;
+            var changed = false;
             foreach (var baseClip in baseProxy.BlendShapeAvatar.Clips)
             {
-                if (baseClip == null) continue;
+                if (!baseClip) continue;
+
                 var destClip = baseClip.Preset != VRM.BlendShapePreset.Unknown
                     ? destProxy.BlendShapeAvatar.GetClip(baseClip.Preset)
                     : destProxy.BlendShapeAvatar.GetClip(baseClip.BlendShapeName);
-                if (destClip != null && destClip.IsBinary != baseClip.IsBinary)
-                {
-                    destClip.IsBinary = baseClip.IsBinary;
-                    EditorUtility.SetDirty(destClip);
-                    changed = true;
-                }
+                if (!destClip || destClip.IsBinary == baseClip.IsBinary) continue;
+
+                destClip.IsBinary = baseClip.IsBinary;
+                EditorUtility.SetDirty(destClip);
+                changed = true;
             }
 
             if (changed) AssetDatabase.SaveAssets();

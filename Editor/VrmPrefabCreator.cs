@@ -3,7 +3,7 @@ using System.IO;
 using UnityEditor;
 using UnityEngine;
 
-namespace Fara.Fara_VRMMultiConverter.Editor
+namespace Fara.FaraVRMMultiConverter.Editor
 {
     /// <summary>
     /// VRMプレハブの作成を担当するクラス
@@ -23,7 +23,7 @@ namespace Fara.Fara_VRMMultiConverter.Editor
 
             // ファイルをロックしている可能性のある隠しプレビューマネージャーを破壊
             Selection.activeObject = null;
-            ResetUniVrmCache(); 
+            ResetUniVrmCache();
 
             var animator = avatar.GetComponent<Animator>();
             if (!animator || !animator.isHuman)
@@ -43,14 +43,14 @@ namespace Fara.Fara_VRMMultiConverter.Editor
             Debug.Log($"✓ VRMプレハブの保存が完了しました: {path}");
             return path;
         }
-    
-        private void ResetUniVrmCache()
+
+        private static void ResetUniVrmCache()
         {
             // VRM 0.x のプレビュー機能をリセット
             var previewType = Type.GetType("VRM.PreviewSceneManager, VRM");
             if (previewType == null) return;
-            foreach (var manager in UnityEngine.Object.FindObjectsOfType(previewType)) 
-                UnityEngine.Object.DestroyImmediate(((Component)manager).gameObject);
+            foreach (var manager in UnityEngine.Object.FindObjectsOfType(previewType))
+                UnityEngine.Object.DestroyImmediate(((Component) manager).gameObject);
         }
 
         private string GetPrefabPath(GameObject avatar)

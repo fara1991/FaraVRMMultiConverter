@@ -2,15 +2,14 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace Fara.Fara_VRMMultiConverter.Editor
+namespace Fara.FaraVRMMultiConverter.Editor
 {
     [CreateAssetMenu(fileName = "DeleteSpecificObjectsSettings", menuName = "Fara/DeleteSpecificObjectsSettings")]
     public class DeleteSpecificObjectsSettings : ScriptableObject
     {
-        [Tooltip("削除したいオブジェクトの名前を追加してください")]
-        public List<string> targetObjectNames = new();
+        [Tooltip("削除したいオブジェクトの名前を追加してください")] public List<string> targetObjectNames = new();
     }
-    
+
     /// <summary>
     /// DeleteSpecificObjectsSettingsのカスタムエディタ
     /// </summary>

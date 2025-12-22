@@ -5,7 +5,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
-namespace Fara.Fara_VRMMultiConverter.Editor
+namespace Fara.FaraVRMMultiConverter.Editor
 {
     public class VrmMultiConverter : EditorWindow
     {
@@ -22,7 +22,9 @@ namespace Fara.Fara_VRMMultiConverter.Editor
         private VrmThumbnailGenerator.ThumbnailResolution _thumbnailResolution =
             VrmThumbnailGenerator.ThumbnailResolution.Resolution1024;
 
-        private static string _settingsPath = "Assets/Fara/Scripts/DeleteSpecificObjectsSettings.asset";
+        private static string _settingsPath =
+            "Assets/Fara/FaraVRMMultiConverter/Editor/DeleteSpecificObjectsSettings.asset";
+
         private static DeleteSpecificObjectsSettings _settings;
         private Vector2 _scrollPosition;
         private int _lastFocusedIndex = -1;
@@ -92,7 +94,8 @@ namespace Fara.Fara_VRMMultiConverter.Editor
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.PrefixLabel(L10N.Converter.AvatarCount);
 
-            var newSize = EditorGUILayout.IntField(_selectedVrcPrefabs.Count, GUILayout.ExpandWidth(true));            if (newSize != _selectedVrcPrefabs.Count)
+            var newSize = EditorGUILayout.IntField(_selectedVrcPrefabs.Count, GUILayout.ExpandWidth(true));
+            if (newSize != _selectedVrcPrefabs.Count)
             {
                 if (newSize < 0) newSize = 0;
 
@@ -145,7 +148,7 @@ namespace Fara.Fara_VRMMultiConverter.Editor
             // 追加用の空のElement（複数ドロップ対応）
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.PrefixLabel(L10N.Converter.AvatarElement(_selectedVrcPrefabs.Count));
-            
+
             var lastFieldRect = EditorGUILayout.GetControlRect(GUILayout.ExpandWidth(true));
             var handled = HandleMultipleObjectDrop(lastFieldRect);
 
@@ -422,17 +425,17 @@ namespace Fara.Fara_VRMMultiConverter.Editor
 
             try
             {
-                converter.SetBatchMode(true);
-                
+                Selection.activeObject = null;
+                AssetDatabase.StartAssetEditing();
                 for (var i = 0; i < validPrefabs.Count; i++)
                 {
                     var prefab = validPrefabs[i];
-                    
+
                     // キャンセル可能なプログレスバーを表示
                     if (EditorUtility.DisplayCancelableProgressBar(
-                        L10N.Converter.Converting,
-                        L10N.Converter.ConvertingProgress(prefab.name, i + 1, totalCount),
-                        (float) i / totalCount))
+                            L10N.Converter.Converting,
+                            L10N.Converter.ConvertingProgress(prefab.name, i + 1, totalCount),
+                            (float) i / totalCount))
                     {
                         // キャンセルされた場合
                         Debug.LogWarning($"変換がキャンセルされました。{successCount}体の変換が完了しました。");
@@ -463,8 +466,14 @@ namespace Fara.Fara_VRMMultiConverter.Editor
             }
             finally
             {
+                AssetDatabase.StopAssetEditing();
                 EditorUtility.ClearProgressBar();
-                
+                var tempDirs = Directory.GetDirectories("Assets", "ZZZ_GeneratedAssets_*");
+                foreach (var dir in tempDirs)
+                {
+                    AssetDatabase.DeleteAsset(dir);
+                }
+
                 // 最後に一度だけRefresh
                 AssetDatabase.SaveAssets();
                 AssetDatabase.Refresh();
@@ -472,7 +481,7 @@ namespace Fara.Fara_VRMMultiConverter.Editor
 
             // 結果メッセージを構築
             var resultMessage = L10N.Converter.ConversionSummary(successCount, failedCount, totalCount);
-            
+
             // 失敗したアバターがある場合は詳細を追加
             if (failedAvatarNames.Count > 0)
             {
@@ -482,6 +491,7 @@ namespace Fara.Fara_VRMMultiConverter.Editor
                 {
                     resultMessage += $"\n• {failedAvatarNames[i]}";
                 }
+
                 if (failedAvatarNames.Count > 10)
                 {
                     resultMessage += $"\n... 他{failedAvatarNames.Count - 10}体";
@@ -496,7 +506,7 @@ namespace Fara.Fara_VRMMultiConverter.Editor
             );
         }
 
-        private void CreateNewSettings()
+        private static void CreateNewSettings()
         {
             var directory = Path.GetDirectoryName(_settingsPath);
             if (!string.IsNullOrEmpty(directory) && !AssetDatabase.IsValidFolder(directory))

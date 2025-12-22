@@ -3,7 +3,7 @@ using System.IO;
 using UnityEditor;
 using UnityEngine;
 
-namespace Fara.Fara_VRMMultiConverter.Editor
+namespace Fara.FaraVRMMultiConverter.Editor
 {
     /// <summary>
     /// VRM Metaデータを更新するヘルパークラス
@@ -14,8 +14,7 @@ namespace Fara.Fara_VRMMultiConverter.Editor
         /// VRM Metaデータを更新
         /// </summary>
         public static void UpdateMeta(
-            string prefabPath, string prefabName, string version, string author, string thumbnailPath, int resolution,
-            bool skipRefresh = false
+            string prefabPath, string prefabName, string version, string author, string thumbnailPath, int resolution
         )
         {
             Debug.Log(L10N.MetaUpdater.UpdateStarted);
@@ -40,13 +39,6 @@ namespace Fara.Fara_VRMMultiConverter.Editor
             finally
             {
                 PrefabUtility.UnloadPrefabContents(prefabContents);
-            }
-
-            // バッチ処理中はRefreshをスキップ
-            if (!skipRefresh)
-            {
-                AssetDatabase.SaveAssets();
-                AssetDatabase.Refresh();
             }
 
             Debug.Log(L10N.MetaUpdater.UpdateCompleted);
@@ -85,7 +77,7 @@ namespace Fara.Fara_VRMMultiConverter.Editor
             {
                 AssetDatabase.CreateFolder(outputDir, $"{prefabName}.MetaObject");
             }
-            
+
             var metaPath = $"{metaDir}/Meta.asset";
             var metaObject = AssetDatabase.LoadAssetAtPath<VRM.VRMMetaObject>(metaPath);
             if (!metaObject)
@@ -94,7 +86,7 @@ namespace Fara.Fara_VRMMultiConverter.Editor
                 AssetDatabase.CreateAsset(metaObject, metaPath);
                 Debug.Log(L10N.MetaUpdater.MetaObjectCreated(metaPath));
             }
-            
+
             vrmMeta.Meta = metaObject;
             Debug.Log(L10N.MetaUpdater.MetaObjectCreated(metaPath));
 
@@ -102,7 +94,8 @@ namespace Fara.Fara_VRMMultiConverter.Editor
         }
 
         private static void SetThumbnail(
-            VRM.VRMMetaObject metaObject, string prefabName, GameObject prefabContents, string thumbnailPath, int resolution)
+            VRM.VRMMetaObject metaObject, string prefabName, GameObject prefabContents, string thumbnailPath,
+            int resolution)
         {
             Debug.Log(L10N.MetaUpdater.ThumbnailSettings);
             var thumbnail =

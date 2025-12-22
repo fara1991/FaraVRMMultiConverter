@@ -1,7 +1,7 @@
 ﻿using NUnit.Framework;
 using UnityEngine;
 using System.Collections.Generic;
-using Fara.Fara_VRMMultiConverter.Editor;
+using Fara.FaraVRMMultiConverter.Editor;
 
 namespace Fara.Tests.Editor
 {
