@@ -157,7 +157,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
             if (!_deleteSettings) return;
             var names = _deleteSettings.targetObjectNames.Where(n => !string.IsNullOrEmpty(n)).ToList();
             if (names.Count == 0) return;
-            DeleteUtility.DeleteSpecificObjectsRecursive(target.transform, names);
+            DeleteUtility.DeleteSpecificObjectsRecursive(target.transform, names, _deleteSettings.useRegex);
         }
 
         private static void DeleteHideObjects(GameObject target)
