@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using UnityEngine;
 
 namespace Fara.FaraVRMMultiConverter.Editor
@@ -25,7 +26,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
         /// <summary>
         /// 再帰的にすべての特定オブジェクトを削除
         /// </summary>
-        internal static int DeleteSpecificObjectsRecursive(Transform parent, List<string> targetNames)
+        internal static int DeleteSpecificObjectsRecursive(Transform parent, List<string> targetNames, bool useRegex)
         {
             var count = 0;
 
@@ -33,7 +34,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
             {
                 var child = parent.GetChild(i);
 
-                if (targetNames.Contains(child.name))
+                if (IsMatch(child.name, targetNames, useRegex))
                 {
                     Debug.Log($"削除: {child.name} (親: {parent.name})");
                     DestroyImmediate(child.gameObject);
@@ -41,12 +42,26 @@ namespace Fara.FaraVRMMultiConverter.Editor
                 }
                 else
                 {
-                    // 削除されなかった子オブジェクトの中も再帰的に検索
-                    count += DeleteSpecificObjectsRecursive(child, targetNames);
+                    count += DeleteSpecificObjectsRecursive(child, targetNames, useRegex);
                 }
             }
 
             return count;
+        }
+        
+        private static bool IsMatch(string name, List<string> patterns, bool useRegex)
+        {
+            if (useRegex)
+            {
+                return patterns.Any(p => 
+                {
+                    if (string.IsNullOrEmpty(p)) return false;
+                    // ワイルドカード '*' を正規表現 '.*' に変換して判定
+                    var regexPattern = "^" + Regex.Escape(p).Replace("\\*", ".*").Replace("\\?", ".") + "$";
+                    return Regex.IsMatch(name, regexPattern, RegexOptions.IgnoreCase);
+                });
+            }
+            return patterns.Contains(name);
         }
     }
 }

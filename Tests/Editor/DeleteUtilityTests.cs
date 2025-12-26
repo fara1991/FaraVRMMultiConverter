@@ -1,9 +1,9 @@
-﻿using NUnit.Framework;
-using UnityEngine;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Fara.FaraVRMMultiConverter.Editor;
+using NUnit.Framework;
+using UnityEngine;
 
-namespace Fara.Tests.Editor
+namespace Fara.FaraVRMMultiConverter.Tests.Editor
 {
     [TestFixture]
     public class DeleteUtilityTests
@@ -36,7 +36,7 @@ namespace Fara.Tests.Editor
             var targetNames = new List<string>();
 
             // Act
-            var result = DeleteUtility.DeleteSpecificObjectsRecursive(_testObject.transform, targetNames);
+            var result = DeleteUtility.DeleteSpecificObjectsRecursive(_testObject.transform, targetNames, false);
 
             // Assert
             Assert.AreEqual(0, result);
@@ -50,7 +50,7 @@ namespace Fara.Tests.Editor
             var initialCount = _testObject.transform.childCount;
 
             // Act
-            var deletedCount = DeleteUtility.DeleteSpecificObjectsRecursive(_testObject.transform, targetNames);
+            var deletedCount = DeleteUtility.DeleteSpecificObjectsRecursive(_testObject.transform, targetNames, false);
 
             // Assert
             Assert.AreEqual(1, deletedCount);

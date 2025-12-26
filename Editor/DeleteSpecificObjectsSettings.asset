@@ -13,25 +13,24 @@ MonoBehaviour:
   m_Name: DeleteSpecificObjectsSettings
   m_EditorClassIdentifier: 
   targetObjectNames:
-  - MOCA_LogoutAvatarHide
+  - MOCA_*
   - HeartBeat_OSC Variant
-  - white feather
-  - white feather1
-  - white feather2
+  - white feather*
   - AfterGlow
-  - Collider
+  - Collider*
   - PocketItem
   - AvatarPoseSystem
   - blackout_prefab Variant
-  - Hover_RollAuto_Trigger
-  - Hover_LegCrossFix
-  - Hover_EmoteConnect
-  - MOCA_SittingMenu
-  - DexClone_CorrectedAvatarRoot
-  - DexClone_worldSpace
+  - Hover_*
+  - DexClone*
   - LogoutRecoveryMesh
   - STDWHover_Menu
-  - sugar particle
-  - sugar particle (1)
+  - sugar particle*
   - Secondary
-  - "\u6383\u9664\u30BB\u30C3\u30C8Cleaning setMA Variant 1"
+  - "\u6383\u9664\u30BB\u30C3\u30C8Cleaning*"
+  - PB*
+  - '*PB'
+  - System
+  - PhysBone*
+  - AnimationDriver
+  useRegex: 1
