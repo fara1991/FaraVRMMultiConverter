@@ -28,9 +28,12 @@ MonoBehaviour:
   - sugar particle*
   - Secondary
   - "\u6383\u9664\u30BB\u30C3\u30C8Cleaning*"
-  - PB*
-  - '*PB'
-  - System
-  - PhysBone*
+  - '*PB*'
+  - '*System*'
+  - '*PhysBone*'
   - AnimationDriver
+  - wagasa&fan_MA
+  - "\u548C\u83D3\u5B50gimmick \u3042\u3093\u307F\u3064AFK*"
+  - '*menu*'
+  - floor*
   useRegex: 1

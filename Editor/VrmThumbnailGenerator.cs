@@ -124,7 +124,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
 
             try
             {
-                var cameraInfo = SetupCamera(tempInstance);
+                var cameraInfo = SetupCamera();
                 WarmupRender(cameraInfo.Camera, warmupRenders, extraDelayMilliseconds);
 
                 var thumbnail = RenderThumbnail(cameraInfo.Camera, resolution);
@@ -180,7 +180,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
             public float OriginalNearClip;
         }
 
-        private static CameraInfo SetupCamera(GameObject avatarInstance)
+        private static CameraInfo SetupCamera()
         {
             var info = new CameraInfo
             {
@@ -193,58 +193,34 @@ namespace Fara.FaraVRMMultiConverter.Editor
                 info.Camera = Object.FindObjectOfType<Camera>();
             }
 
-            // 2. Cameraが存在しない場合は一時的に新しく作成
-            if (!info.Camera)
-            {
-                Debug.Log("シーンにカメラが存在しないため、一時的な新しいカメラを作成します");
-                var cameraObject = new GameObject("ThumbnailCamera_Temp");
-                info.Camera = cameraObject.AddComponent<Camera>();
-                info.WasCreated = true;
-            }
-            else
-            {
-                Debug.Log($"✓ 既存のカメラを使用します: {info.Camera.name}");
-                info.WasCreated = false;
+            info.WasCreated = false;
 
-                // 既存カメラの状態を保存
-                info.OriginalPosition = info.Camera.transform.position;
-                info.OriginalRotation = info.Camera.transform.rotation;
-                info.OriginalTargetTexture = info.Camera.targetTexture;
-                info.OriginalClearFlags = info.Camera.clearFlags;
-                info.OriginalBackgroundColor = info.Camera.backgroundColor;
-                info.OriginalFieldOfView = info.Camera.fieldOfView;
-                info.OriginalCullingMask = info.Camera.cullingMask;
-                info.OriginalNearClip = info.Camera.nearClipPlane;
+            // 既存カメラの状態を保存
+            info.OriginalPosition = info.Camera.transform.position;
+            info.OriginalRotation = info.Camera.transform.rotation;
+            info.OriginalTargetTexture = info.Camera.targetTexture;
+            info.OriginalClearFlags = info.Camera.clearFlags;
+            info.OriginalBackgroundColor = info.Camera.backgroundColor;
+            info.OriginalFieldOfView = info.Camera.fieldOfView;
+            info.OriginalCullingMask = info.Camera.cullingMask;
+            info.OriginalNearClip = info.Camera.nearClipPlane;
 
-                Debug.Log("既存カメラの状態を保存しました");
-            }
+            Debug.Log("既存カメラの状態を保存しました");
 
             // 近づいてもアバターが消えないように
             info.Camera.cullingMask = ~0;
             info.Camera.nearClipPlane = 0.01f;
 
-            PositionCamera(info.Camera, avatarInstance);
+            PositionCamera(info.Camera);
 
             return info;
         }
 
-        private static void PositionCamera(Camera camera, GameObject avatarInstance)
+        private static void PositionCamera(Camera camera)
         {
             // アバターは原点にある前提で、標準的なバストアップ位置に固定
-            // Bounds計算を省略することで処理速度を向上
-            camera.transform.position = new Vector3(0, 1.4f, 0.5f); // 少し近めに配置
-            camera.transform.LookAt(new Vector3(0, 1.4f, 0));
-
-            // アバターの高さに合わせて微調整が必要な場合はここで行う
-            var animator = avatarInstance.GetComponent<Animator>();
-            if (!animator || !animator.isHuman) return;
-
-            var head = animator.GetBoneTransform(HumanBodyBones.Head);
-            if (!head) return;
-
-            var headPos = head.position;
-            camera.transform.position = headPos + avatarInstance.transform.forward * 0.4f;
-            camera.transform.LookAt(headPos);
+            camera.transform.position = new Vector3(0, 0.7f, 1.4f);
+            camera.transform.LookAt(new Vector3(0, 0.7f, 0));
         }
 
         private static Texture2D RenderThumbnail(Camera camera, int resolution)
@@ -283,23 +259,15 @@ namespace Fara.FaraVRMMultiConverter.Editor
 
         private static void CleanupCamera(CameraInfo info)
         {
-            if (info.WasCreated)
-            {
-                Debug.Log("一時的なカメラを削除します");
-                Object.DestroyImmediate(info.Camera.gameObject);
-            }
-            else
-            {
-                Debug.Log("既存カメラの状態を復元します");
-                info.Camera.transform.position = info.OriginalPosition;
-                info.Camera.transform.rotation = info.OriginalRotation;
-                info.Camera.targetTexture = info.OriginalTargetTexture;
-                info.Camera.clearFlags = info.OriginalClearFlags;
-                info.Camera.backgroundColor = info.OriginalBackgroundColor;
-                info.Camera.fieldOfView = info.OriginalFieldOfView;
-                info.Camera.cullingMask = info.OriginalCullingMask;
-                info.Camera.nearClipPlane = info.OriginalNearClip;
-            }
+            Debug.Log("既存カメラの状態を復元します");
+            info.Camera.transform.position = info.OriginalPosition;
+            info.Camera.transform.rotation = info.OriginalRotation;
+            info.Camera.targetTexture = info.OriginalTargetTexture;
+            info.Camera.clearFlags = info.OriginalClearFlags;
+            info.Camera.backgroundColor = info.OriginalBackgroundColor;
+            info.Camera.fieldOfView = info.OriginalFieldOfView;
+            info.Camera.cullingMask = info.OriginalCullingMask;
+            info.Camera.nearClipPlane = info.OriginalNearClip;
         }
 
         private static Texture2D SaveThumbnail(Texture2D thumbnail, string prefabName, string thumbnailPath)
@@ -319,15 +287,9 @@ namespace Fara.FaraVRMMultiConverter.Editor
                 ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
 
             var savedThumbnail = AssetDatabase.LoadAssetAtPath<Texture2D>(assetPath);
-            if (savedThumbnail)
-            {
-                Debug.Log($"✓ サムネイルを作成しました: {assetPath}");
-                Debug.Log($"  サイズ: {savedThumbnail.width}x{savedThumbnail.height}");
-                return savedThumbnail;
-            }
-
-            Debug.LogWarning("保存したサムネイルの読み込みに失敗しました。メモリ上のテクスチャを返します");
-            return thumbnail;
+            Debug.Log($"✓ サムネイルを作成しました: {assetPath}");
+            Debug.Log($"  サイズ: {savedThumbnail.width}x{savedThumbnail.height}");
+            return savedThumbnail;
         }
     }
 }

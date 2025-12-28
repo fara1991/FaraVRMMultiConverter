@@ -101,20 +101,13 @@ namespace Fara.FaraVRMMultiConverter.Editor
             var thumbnail =
                 VrmThumbnailGenerator.GetOrCreateThumbnail(prefabName, prefabContents, thumbnailPath, resolution);
 
-            if (thumbnail)
-            {
-                metaObject.Thumbnail = thumbnail;
-                Debug.Log(L10N.MetaUpdater.ThumbnailSet(
-                    thumbnail.name,
-                    AssetDatabase.GetAssetPath(thumbnail),
-                    thumbnail.width,
-                    thumbnail.height
-                ));
-            }
-            else
-            {
-                Debug.LogWarning(L10N.MetaUpdater.ThumbnailSetFailed);
-            }
+            metaObject.Thumbnail = thumbnail;
+            Debug.Log(L10N.MetaUpdater.ThumbnailSet(
+                thumbnail.name,
+                AssetDatabase.GetAssetPath(thumbnail),
+                thumbnail.width,
+                thumbnail.height
+            ));
         }
 
         private static void SetMetaInformation(
@@ -122,17 +115,9 @@ namespace Fara.FaraVRMMultiConverter.Editor
         {
             Debug.Log(L10N.MetaUpdater.MetaInfoSettings);
 
-            // Title
-            if (!string.IsNullOrEmpty(prefabName))
-            {
-                var oldTitle = metaObject.Title;
-                metaObject.Title = prefabName;
-                Debug.Log(L10N.MetaUpdater.TitleUpdated(oldTitle, prefabName));
-            }
-            else
-            {
-                Debug.LogWarning(L10N.MetaUpdater.TitleSkipped);
-            }
+            var oldTitle = metaObject.Title;
+            metaObject.Title = prefabName;
+            Debug.Log(L10N.MetaUpdater.TitleUpdated(oldTitle, prefabName));
 
             // Version
             if (!string.IsNullOrEmpty(version))

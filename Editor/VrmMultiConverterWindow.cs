@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using UnityEditor;
@@ -7,9 +8,10 @@ using UnityEngine;
 
 namespace Fara.FaraVRMMultiConverter.Editor
 {
-    public class VrmMultiConverter : EditorWindow
+    [ExcludeFromCodeCoverage]
+    public class VrmMultiConverterWindow : EditorWindow
     {
-        private const string LanguagePrefKey = "VrmMultiConverter_SettingsPath";
+        private const string LanguagePrefKey = "VrmMultiConverterWindow_SettingsPath";
 
         private readonly List<GameObject> _selectedVrcPrefabs = new();
         private bool _isVrmComponentCopy;
@@ -38,7 +40,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
         [MenuItem("FaraScripts/VRM Multi-Converter")]
         public static void ShowWindow()
         {
-            var window = GetWindow<VrmMultiConverter>(L10N.Converter.WindowTitle);
+            var window = GetWindow<VrmMultiConverterWindow>(L10N.Converter.WindowTitle);
             window.minSize = new Vector2(500, 300);
 
             if (EditorPrefs.HasKey(LanguagePrefKey))
@@ -165,11 +167,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
                 // 単一オブジェクトが追加された場合
                 if (newObject is not null)
                 {
-                    if (!_selectedVrcPrefabs.Contains(newObject))
-                    {
-                        _selectedVrcPrefabs.Add(newObject);
-                    }
-
+                    VrmConverterListUtility.AddUniqueGameObjects(_selectedVrcPrefabs, new[] { newObject });
                     GUI.FocusControl(null);
                 }
             }
@@ -312,27 +310,11 @@ namespace Fara.FaraVRMMultiConverter.Editor
 
         private void RemoveLastOrSelected()
         {
-            if (_selectedVrcPrefabs.Count == 0)
-                return;
-
-            // フォーカスされているインデックスがある場合はそれを削除
-            if (_lastFocusedIndex >= 0 && _lastFocusedIndex < _selectedVrcPrefabs.Count)
-            {
-                _selectedVrcPrefabs.RemoveAt(_lastFocusedIndex);
-                _lastFocusedIndex = -1;
-                return;
-            }
-
-            // 最後の要素から逆順でnullを探して削除
-            for (var i = _selectedVrcPrefabs.Count - 1; i >= 0; i--)
-            {
-                if (_selectedVrcPrefabs[i] is not null) continue;
-                _selectedVrcPrefabs.RemoveAt(i);
-                return;
-            }
-
-            // nullがない場合は最後の要素を削除
-            _selectedVrcPrefabs.RemoveAt(_selectedVrcPrefabs.Count - 1);
+            var index = VrmConverterListUtility.GetIndexToRemove(_selectedVrcPrefabs, _lastFocusedIndex);
+            if (index < 0) return;
+            
+            _selectedVrcPrefabs.RemoveAt(index);
+            _lastFocusedIndex = -1;
         }
 
         private bool HandleMultipleObjectDrop(Rect dropRect)
@@ -365,11 +347,8 @@ namespace Fara.FaraVRMMultiConverter.Editor
                     {
                         DragAndDrop.AcceptDrag();
 
-                        // 複数のGameObjectをまとめて追加
-                        foreach (var obj in draggedObjects.Where(obj => !_selectedVrcPrefabs.Contains(obj)))
-                        {
-                            _selectedVrcPrefabs.Add(obj);
-                        }
+                        // ユーティリティを使用して重複なく追加
+                        VrmConverterListUtility.AddUniqueGameObjects(_selectedVrcPrefabs, draggedObjects);
 
                         GUI.changed = true;
                         Repaint();

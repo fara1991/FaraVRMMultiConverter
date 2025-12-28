@@ -28,7 +28,6 @@ namespace Fara.FaraVRMMultiConverter.Editor
             var animator = avatar.GetComponent<Animator>();
             if (!animator || !animator.isHuman)
             {
-                EditorUtility.DisplayDialog(avatar.name, "HumanoidのAnimatorが必要です", "OK");
                 return "";
             }
 
