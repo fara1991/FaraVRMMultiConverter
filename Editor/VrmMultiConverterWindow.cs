@@ -365,7 +365,10 @@ namespace Fara.FaraVRMMultiConverter.Editor
 
         private void ConvertMultipleToVrm()
         {
-            var validPrefabs = _selectedVrcPrefabs.Where(p => p != null).ToList();
+            // 実行時にAssetDatabaseを最新にする
+            AssetDatabase.Refresh();
+
+            var validPrefabs = _selectedVrcPrefabs.Where(p => p is not null).ToList();
             if (validPrefabs.Count == 0)
             {
                 EditorUtility.DisplayDialog(L10N.Error, L10N.Converter.NoAvatarsSelected, L10N.OK);
@@ -396,7 +399,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
                 _baseVrmPrefab,
                 _settings
             );
-
+            
             var successCount = 0;
             var failedCount = 0;
             var totalCount = validPrefabs.Count;
@@ -405,7 +408,6 @@ namespace Fara.FaraVRMMultiConverter.Editor
             try
             {
                 Selection.activeObject = null;
-                AssetDatabase.StartAssetEditing();
                 for (var i = 0; i < validPrefabs.Count; i++)
                 {
                     var prefab = validPrefabs[i];
@@ -441,11 +443,12 @@ namespace Fara.FaraVRMMultiConverter.Editor
                         failedAvatarNames.Add(prefab.name);
                         Debug.LogError($"✗ {prefab.name} の変換中にエラーが発生しました: {e.Message}");
                     }
+                    
+                    AssetDatabase.SaveAssets();
                 }
             }
             finally
             {
-                AssetDatabase.StopAssetEditing();
                 EditorUtility.ClearProgressBar();
                 var tempDirs = Directory.GetDirectories("Assets", "ZZZ_GeneratedAssets_*");
                 foreach (var dir in tempDirs)

@@ -100,8 +100,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
                 {
                     AssetDatabase.DeleteAsset(generatedFolderPath);
                 }
-                
-                EnsureDirectoryExists(_vrmOutputPath);
+
                 AssetDatabase.CreateFolder(_vrmOutputPath, generatedFolderName);
 
                 // アセットの永続化
@@ -109,15 +108,29 @@ namespace Fara.FaraVRMMultiConverter.Editor
 
                 // VRM Prefabの保存
                 var prefabCreator = new VrmPrefabCreator(_vrmOutputPath);
-                var finalPath = prefabCreator.CreateVrmPrefab(bakedAvatar);
+                var vrmPrefabPath = prefabCreator.CreateVrmPrefab(bakedAvatar);
 
                 // VRMセットアップ
-                AssetDatabase.ImportAsset(finalPath, ImportAssetOptions.ForceUpdate);
-                VRMInitializer.Initialize(finalPath);
+                AssetDatabase.ImportAsset(vrmPrefabPath, ImportAssetOptions.ForceUpdate);
+                VRMInitializer.Initialize(vrmPrefabPath);
+                AssetDatabase.Refresh();
 
-                if (_isVrmComponentCopy && _baseVrmPrefab) CopySettingsFromBase(finalPath);
+                var vrmPrefab = PrefabUtility.LoadPrefabContents(vrmPrefabPath);
 
-                UpdateAndFinalizeVrm(finalPath, avatarName);
+                if (_isVrmComponentCopy && _baseVrmPrefab) CopySettingsFromBase(vrmPrefab);
+                VrmMetaUpdater.UpdateMeta(
+                    vrmPrefab,
+                    vrmPrefabPath,
+                    avatarName,
+                    _vrmVersion,
+                    _vrmAuthor,
+                    _vrmThumbnailPath,
+                    _thumbnailResolution
+                );
+                FinalizeVrmInternalAssets(vrmPrefab, avatarName);
+
+                PrefabUtility.SaveAsPrefabAsset(vrmPrefab, vrmPrefabPath);
+                PrefabUtility.UnloadPrefabContents(vrmPrefab);
                 return true;
             }
             catch (Exception e)
@@ -127,7 +140,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
             }
         }
 
-        private void PersistAssetsToFolder(GameObject avatar, string folderPath)
+        private static void PersistAssetsToFolder(GameObject avatar, string folderPath)
         {
             var processedAssets = new Dictionary<UnityEngine.Object, UnityEngine.Object>();
 
@@ -188,10 +201,9 @@ namespace Fara.FaraVRMMultiConverter.Editor
             }
 
             AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
         }
 
-        private void PersistMaterialTextures(Material mat, string folderPath,
+        private static void PersistMaterialTextures(Material mat, string folderPath,
             Dictionary<UnityEngine.Object, UnityEngine.Object> cache)
         {
             var shader = mat.shader;
@@ -224,17 +236,9 @@ namespace Fara.FaraVRMMultiConverter.Editor
 
         private static bool IsTemporaryAsset(UnityEngine.Object obj)
         {
-            if (obj == null) return false;
+            if (obj is null) return false;
             var path = AssetDatabase.GetAssetPath(obj);
             return string.IsNullOrEmpty(path) || path.Contains("ZZZ_GeneratedAssets_");
-        }
-
-        private void UpdateAndFinalizeVrm(string vrmPrefabPath, string avatarName)
-        {
-            VrmMetaUpdater.UpdateMeta(
-                vrmPrefabPath, avatarName, _vrmVersion, _vrmAuthor, _vrmThumbnailPath, _thumbnailResolution);
-            FinalizeVrmInternalAssets(vrmPrefabPath, avatarName);
-            if (_isVrmComponentCopy && _baseVrmPrefab) ApplyIsBinarySettings(vrmPrefabPath);
         }
 
         private void DeleteSpecificObjects(GameObject target)
@@ -256,23 +260,25 @@ namespace Fara.FaraVRMMultiConverter.Editor
             }
         }
 
-        private void CopySettingsFromBase(string vrmPrefabPath)
+        private void CopySettingsFromBase(GameObject vrmPrefab)
         {
-            var destinationPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(vrmPrefabPath);
-            if (destinationPrefab)
-                CopyVRMSettings.Copy(_baseVrmPrefab, destinationPrefab, CopyVRMSettings.SupportedComponents.ToList());
+            var tempInstance = UnityEngine.Object.Instantiate(vrmPrefab);
+
+            CopyVRMSettings.Copy(_baseVrmPrefab, tempInstance, CopyVRMSettings.SupportedComponents.ToList());
+            EditorUtility.CopySerialized(tempInstance.GetComponent<VRMBlendShapeProxy>(),
+                vrmPrefab.GetComponent<VRMBlendShapeProxy>());
+            ApplyIsBinarySettings(vrmPrefab);
+
+            UnityEngine.Object.DestroyImmediate(tempInstance);
         }
 
-        private void FinalizeVrmInternalAssets(string vrmPrefabPath, string avatarName)
+        private void FinalizeVrmInternalAssets(GameObject vrmPrefab, string avatarName)
         {
-            var vrmPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(vrmPrefabPath);
-
             BlendShapeAvatar finalizedBlendShapeAvatar = null;
             var blendProxy = vrmPrefab.GetComponent<VRMBlendShapeProxy>();
             if (blendProxy && blendProxy.BlendShapeAvatar)
             {
                 var folderPath = $"{_vrmOutputPath}/{avatarName}.BlendShapes";
-
                 var clips = new List<BlendShapeClip>();
                 var baseProxy = _baseVrmPrefab?.GetComponent<VRMBlendShapeProxy>();
                 foreach (var sourceClip in blendProxy.BlendShapeAvatar.Clips)
@@ -303,21 +309,27 @@ namespace Fara.FaraVRMMultiConverter.Editor
             var metaAssetPath = $"{_vrmOutputPath}/{avatarName}.MetaObject/Meta.asset";
             var finalizedMeta = AssetDatabase.LoadAssetAtPath<VRMMetaObject>(metaAssetPath);
 
-            using var scope = new PrefabUtility.EditPrefabContentsScope(vrmPrefabPath);
             if (finalizedBlendShapeAvatar)
-                scope.prefabContentsRoot.GetComponent<VRMBlendShapeProxy>().BlendShapeAvatar =
-                    finalizedBlendShapeAvatar;
+            {
+                var vrmBlendProxy = vrmPrefab.GetComponent<VRMBlendShapeProxy>();
+                if (vrmBlendProxy)
+                {
+                    vrmBlendProxy.BlendShapeAvatar = finalizedBlendShapeAvatar;
+                    EditorUtility.SetDirty(vrmBlendProxy);
+                }
+            }
 
             if (!finalizedMeta) return;
 
-            var metaComp = scope.prefabContentsRoot.GetComponent<VRMMeta>();
-            if (metaComp) metaComp.Meta = finalizedMeta;
+            var metaComp = vrmPrefab.GetComponent<VRMMeta>();
+            if (!metaComp) return;
+
+            metaComp.Meta = finalizedMeta;
+            EditorUtility.SetDirty(metaComp);
         }
 
-        private void ApplyIsBinarySettings(string vrmPrefabPath)
+        private void ApplyIsBinarySettings(GameObject vrmPrefab)
         {
-            var vrmPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(vrmPrefabPath);
-            if (!vrmPrefab) return;
             var baseProxy = _baseVrmPrefab.GetComponent<VRMBlendShapeProxy>();
             var destProxy = vrmPrefab.GetComponent<VRMBlendShapeProxy>();
             if (!baseProxy || !baseProxy.BlendShapeAvatar || !destProxy || !destProxy.BlendShapeAvatar) return;
@@ -336,12 +348,6 @@ namespace Fara.FaraVRMMultiConverter.Editor
             }
 
             if (changed) AssetDatabase.SaveAssets();
-        }
-        
-        private static void EnsureDirectoryExists(string directory)
-        {
-            if (string.IsNullOrEmpty(directory) || Directory.Exists(directory)) return;
-            Directory.CreateDirectory(directory);
         }
     }
 }

@@ -12,8 +12,8 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
         {
             var list = new List<GameObject>();
             var obj = new GameObject("Test");
-            
-            VrmConverterListUtility.AddUniqueGameObjects(list, new[] { obj, obj, null });
+
+            VrmConverterListUtility.AddUniqueGameObjects(list, new[] {obj, obj, null});
 
             Assert.AreEqual(1, list.Count);
             Object.DestroyImmediate(obj);

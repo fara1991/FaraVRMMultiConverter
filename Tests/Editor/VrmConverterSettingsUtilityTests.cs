@@ -23,17 +23,17 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
 
             Assert.IsNotNull(settings);
             Assert.IsTrue(File.Exists(Path.GetFullPath(TestSettingsPath)));
-            
+
             var loaded = AssetDatabase.LoadAssetAtPath<DeleteSpecificObjectsSettings>(TestSettingsPath);
             Assert.AreEqual(settings, loaded);
         }
-        
+
         [Test]
         public void CreateSettingsAsset_WhenNestedDirectoryDoesNotExist_ShouldCreateDirectoriesAndAsset()
         {
             // 深い階層の存在しないパスを指定する
-            string nestedPath = "Assets/TestFolder/SubFolder/DeepFolder/Test_DeleteSettings.asset";
-            string rootTestFolder = "Assets/TestFolder";
+            const string nestedPath = "Assets/TestFolder/SubFolder/DeepFolder/Test_DeleteSettings.asset";
+            const string rootTestFolder = "Assets/TestFolder";
 
             try
             {

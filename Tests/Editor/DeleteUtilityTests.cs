@@ -34,8 +34,8 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
             child1.transform.SetParent(_root.transform);
             var child2 = new GameObject("KeepMe");
             child2.transform.SetParent(_root.transform);
-            
-            var targetNames = new List<string> { "DeleteMe" };
+
+            var targetNames = new List<string> {"DeleteMe"};
 
             // Act
             var count = DeleteUtility.DeleteSpecificObjectsRecursive(_root.transform, targetNames, false);
@@ -54,8 +54,8 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
             new GameObject("VRC_Contact_Receiver").transform.SetParent(_root.transform);
             new GameObject("VRC_PhysBone").transform.SetParent(_root.transform);
             new GameObject("NormalObject").transform.SetParent(_root.transform);
-            
-            var targetNames = new List<string> { "VRC_*" };
+
+            var targetNames = new List<string> {"VRC_*"};
 
             // Act
             var count = DeleteUtility.DeleteSpecificObjectsRecursive(_root.transform, targetNames, true);
@@ -73,11 +73,11 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
             // Arrange
             var parent = new GameObject("Parent");
             parent.transform.SetParent(_root.transform);
-            
+
             var target = new GameObject("DeleteMe");
             target.transform.SetParent(parent.transform); // 階層の下にある
-            
-            var targetNames = new List<string> { "DeleteMe" };
+
+            var targetNames = new List<string> {"DeleteMe"};
 
             // Act
             var count = DeleteUtility.DeleteSpecificObjectsRecursive(_root.transform, targetNames, false);
@@ -94,16 +94,16 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
             // Arrange
             var target = new GameObject("ComponentContainer");
             target.transform.SetParent(_root.transform);
-            
+
             // モックとして、Namespaceに "VRC" が含まれるコンポーネントをシミュレートするのは難しいため、
             // 実際には VRChat SDK が入っている環境であればそのコンポーネントを使用しますが、
             // テストを安定させるために、ここでは「NamespaceがVRCを含むか」のロジックが通ることを期待します。
-            
+
             // 注意: ユニットテスト環境に VRChat SDK がない場合、実際の VRC コンポーネントは追加できません。
             // もし独自の Namespace モックを作りたい場合は、継承したクラスを作成します。
-            
+
             target.AddComponent<BoxCollider>(); // VRCではない
-            
+
             // Act
             DeleteUtility.DeleteVrcComponentsRecursive(target);
 
@@ -116,10 +116,10 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
         {
             // DeleteUtility の private メソッド IsMatch は reflection で呼ぶか、
             // DeleteSpecificObjectsRecursive を通じて空文字パターンをテストします。
-            
+
             // Arrange
             new GameObject("AnyName").transform.SetParent(_root.transform);
-            var targetNames = new List<string> { "", null }; // 空のパターン
+            var targetNames = new List<string> {"", null}; // 空のパターン
 
             // Act
             var count = DeleteUtility.DeleteSpecificObjectsRecursive(_root.transform, targetNames, true);
@@ -127,13 +127,13 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
             // Assert
             Assert.AreEqual(0, count, "空のパターンでは何も削除されないべき");
         }
-        
+
         [Test]
         public void DeleteVrcComponentsRecursive_WhenVrcComponentExists_ShouldDestroyThem()
         {
             // 1. セットアップ: オブジェクトを作成
             var root = new GameObject("Root");
-            
+
             // 削除対象のVRCコンポーネントを追加
             root.AddComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
             // 削除されないはずのコンポーネントを追加（検証ループ内のアサーションを実行させるため）
@@ -149,7 +149,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
             // 3. 検証: rootに残っているコンポーネントをチェック
             // GetComponentsInChildren(true) は生きているコンポーネントのみを返す
             var afterComponents = root.GetComponentsInChildren<Component>(true);
-            
+
             foreach (var c in afterComponents)
             {
                 // Transform以外かつ、生きているコンポーネント（MeshFilter等）に対して

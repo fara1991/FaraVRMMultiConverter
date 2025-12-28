@@ -182,11 +182,6 @@ namespace Fara.FaraVRMMultiConverter.Editor
             // エラーメッセージ
             public static class Errors
             {
-                public static string FailedToCreateVrmPrefab => LocalizationManager.Get(
-                    "VRMプレハブの作成に失敗しました",
-                    "Failed to create VRM prefab"
-                );
-
                 public static string TargetVrmBasePrefabNotSelected => LocalizationManager.Get(
                     "ベースVRMプレハブが選択されていません",
                     "Target VRM Base Prefab is not selected"

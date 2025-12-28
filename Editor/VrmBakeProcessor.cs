@@ -29,7 +29,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
 
             return FindBakedAvatar(vrcAvatarInstance.name);
         }
-        
+
         private static GameObject FindBakedAvatar(string name)
         {
             var rootObjs = UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects();
@@ -37,6 +37,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
             {
                 if (obj.name == name) return obj;
             }
+
             return rootObjs.FirstOrDefault(obj => obj.name.Contains(name));
         }
     }

@@ -14,43 +14,36 @@ namespace Fara.FaraVRMMultiConverter.Editor
         /// VRM Metaデータを更新
         /// </summary>
         public static void UpdateMeta(
-            string prefabPath, string prefabName, string version, string author, string thumbnailPath, int resolution
+            GameObject vrmPrefab, string prefabPath, string prefabName, string version, string author, string thumbnailPath, int resolution
         )
         {
             Debug.Log(L10N.MetaUpdater.UpdateStarted);
-            Debug.Log(L10N.MetaUpdater.TargetPrefab(prefabPath));
             Debug.Log(L10N.MetaUpdater.PrefabName(prefabName));
-
-            var prefabContents = PrefabUtility.LoadPrefabContents(prefabPath);
 
             try
             {
-                var vrmMeta = GetOrAddVrmMeta(prefabContents);
+                var vrmMeta = GetOrAddVrmMeta(vrmPrefab);
                 var metaObject = GetOrCreateMetaObject(vrmMeta, prefabPath, prefabName);
-                SetThumbnail(metaObject, prefabName, prefabContents, thumbnailPath, resolution);
+                SetThumbnail(metaObject, prefabName, vrmPrefab, thumbnailPath, resolution);
                 SetMetaInformation(metaObject, prefabName, version, author);
-                SaveChanges(metaObject, prefabContents, prefabPath);
+                SaveChanges(metaObject, vrmPrefab, prefabPath);
             }
             catch (Exception e)
             {
                 Debug.LogError(L10N.MetaUpdater.UpdateError(e.Message));
                 Debug.LogError($"スタックトレース: {e.StackTrace}");
             }
-            finally
-            {
-                PrefabUtility.UnloadPrefabContents(prefabContents);
-            }
 
             Debug.Log(L10N.MetaUpdater.UpdateCompleted);
         }
 
-        private static VRM.VRMMeta GetOrAddVrmMeta(GameObject prefabContents)
+        private static VRM.VRMMeta GetOrAddVrmMeta(GameObject vrmPrefab)
         {
-            var vrmMeta = prefabContents.GetComponent<VRM.VRMMeta>();
+            var vrmMeta = vrmPrefab.GetComponent<VRM.VRMMeta>();
             if (!vrmMeta)
             {
                 Debug.Log(L10N.MetaUpdater.VrmMetaComponentNotFound);
-                vrmMeta = prefabContents.AddComponent<VRM.VRMMeta>();
+                vrmMeta = vrmPrefab.AddComponent<VRM.VRMMeta>();
             }
             else
             {
@@ -94,14 +87,18 @@ namespace Fara.FaraVRMMultiConverter.Editor
         }
 
         private static void SetThumbnail(
-            VRM.VRMMetaObject metaObject, string prefabName, GameObject prefabContents, string thumbnailPath,
+            VRM.VRMMetaObject metaObject, string prefabName, GameObject vrmPrefab, string thumbnailPath,
             int resolution)
         {
             Debug.Log(L10N.MetaUpdater.ThumbnailSettings);
             var thumbnail =
-                VrmThumbnailGenerator.GetOrCreateThumbnail(prefabName, prefabContents, thumbnailPath, resolution);
+                VrmThumbnailGenerator.GetOrCreateThumbnail(prefabName, vrmPrefab, thumbnailPath, resolution);
 
+            // VRM 0.xはVRMMetaObjectとVRMMetaの両方にサムネイル設定が必要
             metaObject.Thumbnail = thumbnail;
+            var vrmMeta = vrmPrefab.GetComponent<VRM.VRMMeta>();
+            vrmMeta.Meta.Thumbnail = thumbnail;
+            
             Debug.Log(L10N.MetaUpdater.ThumbnailSet(
                 thumbnail.name,
                 AssetDatabase.GetAssetPath(thumbnail),
@@ -150,13 +147,17 @@ namespace Fara.FaraVRMMultiConverter.Editor
             Debug.Log($"  Thumbnail: {(metaObject.Thumbnail ? metaObject.Thumbnail.name : L10N.MetaUpdater.None)}");
         }
 
-        private static void SaveChanges(VRM.VRMMetaObject metaObject, GameObject prefabContents, string prefabPath)
+        private static void SaveChanges(VRM.VRMMetaObject metaObject, GameObject vrmPrefab, string prefabPath)
         {
             EditorUtility.SetDirty(metaObject);
             AssetDatabase.SaveAssetIfDirty(metaObject);
 
             Debug.Log(L10N.MetaUpdater.SavingPrefab);
-            PrefabUtility.SaveAsPrefabAsset(prefabContents, prefabPath);
+            var vrmMeta = vrmPrefab.GetComponent<VRM.VRMMeta>();
+            if (vrmMeta is not null)
+            {
+                EditorUtility.SetDirty(vrmMeta);
+            }
             Debug.Log(L10N.MetaUpdater.PrefabSaved);
         }
     }

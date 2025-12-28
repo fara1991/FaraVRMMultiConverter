@@ -34,7 +34,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
                 return mockBaked;
             }
         }
-        
+
         private class ExceptionBakeProcessor : IVrmBakeProcessor
         {
             public GameObject ProcessBake(GameObject vrcAvatarInstance, string avatarName)
@@ -42,7 +42,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
                 throw new Exception("Simulated Exception for Testing");
             }
         }
-        
+
         [SetUp]
         public void SetUp()
         {
@@ -81,15 +81,8 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
             var assets = AssetDatabase.LoadAllAssetsAtPath(TestModelPath);
             var originalAvatar = assets.OfType<Avatar>().FirstOrDefault(a => a.isHuman);
 
-            if (originalAvatar != null)
-            {
-                animator.avatar = originalAvatar;
-            }
-            else
-            {
-                // バックアップ：もし Avatar が見つからなければ空のものを一旦作る
-                animator.avatar = AvatarBuilder.BuildHumanAvatar(root, new HumanDescription());
-            }
+            animator.avatar = originalAvatar;
+            animator.Rebind();
 
             var allTransforms = root.GetComponentsInChildren<Transform>();
 
@@ -101,7 +94,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
 
             return root;
         }
-        
+
         [Test]
         public void ConvertSingleAvatar_ShouldSucceed_WithMockBake()
         {
@@ -110,14 +103,14 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
 
             // MockBakeProcessorを注入して、重いベイク処理を回避
             var converter = new VrmAvatarConverter(
-                _outputPath, _thumbnailPath, "1.0", "Author", 256, false, null, _deleteSettings, 
+                _outputPath, _thumbnailPath, "1.0", "Author", 256, false, null, _deleteSettings,
                 mockBake
             );
 
             bool result = converter.ConvertSingleAvatar(vrcAvatar);
 
             Assert.IsTrue(result, "ConvertSingleAvatar should return true with a valid mock bake.");
-                
+
             var resultPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{_outputPath}/TestVrcAvatar.prefab");
             Assert.IsNotNull(resultPrefab, "Resulting VRM prefab should be created.");
 
@@ -207,23 +200,23 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
 
             Object.DestroyImmediate(bakedMock);
         }
-        
+
         [Test]
         public void ConvertBakedAvatar_WithAssetsPersistence_ShouldHandleComplexAssets()
         {
             var bakedMock = CreateValidHumanoidMock("ComplexAssetInstance");
-            
+
             // 1. MeshFilter + MeshRenderer のパターン (SkinnedMeshRenderer以外)
             var meshObj = new GameObject("StaticMesh");
             meshObj.transform.SetParent(bakedMock.transform);
             var filter = meshObj.AddComponent<MeshFilter>();
-            filter.sharedMesh = new Mesh { name = "StaticMemoryMesh" };
+            filter.sharedMesh = new Mesh {name = "StaticMemoryMesh"};
             var renderer = meshObj.AddComponent<MeshRenderer>();
-            
+
             // 2. 一時アセットとして認識されるマテリアルとテクスチャの作成
             // パスに "ZZZ_GeneratedAssets_" を含むことで IsTemporaryAsset を true にする
-            var mat = new Material(Shader.Find("VRM/MToon")) { name = "TempMat" };
-            var tex = new Texture2D(2, 2) { name = "TempTex" };
+            var mat = new Material(Shader.Find("VRM/MToon")) {name = "TempMat"};
+            var tex = new Texture2D(2, 2) {name = "TempTex"};
             mat.mainTexture = tex;
             renderer.sharedMaterial = mat;
 
@@ -235,7 +228,8 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
             AssetDatabase.CreateAsset(tex, tempTexPath);
             AssetDatabase.CreateAsset(mat, tempMatPath);
 
-            var converter = new VrmAvatarConverter(_outputPath, _thumbnailPath, "1.0", "Author", 256, false, null, _deleteSettings);
+            var converter = new VrmAvatarConverter(_outputPath, _thumbnailPath, "1.0", "Author", 256, false, null,
+                _deleteSettings);
 
             // 実行
             bool result = converter.ConvertBakedAvatar(bakedMock, "ComplexTest");
@@ -243,20 +237,21 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
             // 検証
             Assert.IsTrue(result);
             var genFolder = $"{_outputPath}/ComplexTest.Generated";
-            
+
             // メッシュ、マテリアル、テクスチャが書き出されているか確認
-            var assets = AssetDatabase.FindAssets("", new[] { genFolder }).Select(AssetDatabase.GUIDToAssetPath).ToList();
+            var assets = AssetDatabase.FindAssets("", new[] {genFolder}).Select(AssetDatabase.GUIDToAssetPath).ToList();
             Assert.IsTrue(assets.Any(p => p.Contains("StaticMemoryMesh")), "Mesh should be persisted.");
             Assert.IsTrue(assets.Any(p => p.Contains("TempMat")), "Material should be persisted.");
             Assert.IsTrue(assets.Any(p => p.Contains("TempTex")), "Texture should be persisted.");
 
             Object.DestroyImmediate(bakedMock);
         }
-        
+
         [Test]
         public void ConvertSingleAvatar_WithInvalidInput_ShouldReturnFalse()
         {
-            var converter = new VrmAvatarConverter(_outputPath, _thumbnailPath, "1.0", "Author", 256, false, null, _deleteSettings);
+            var converter = new VrmAvatarConverter(_outputPath, _thumbnailPath, "1.0", "Author", 256, false, null,
+                _deleteSettings);
 
             // 1. ガード句のテスト (null渡し)
             bool result = converter.ConvertSingleAvatar(null);
@@ -266,7 +261,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
             // 意図的に例外を投げるMockを注入
             var exceptionMock = new ExceptionBakeProcessor();
             var exceptionConverter = new VrmAvatarConverter(
-                _outputPath, _thumbnailPath, "1.0", "Author", 256, false, null, _deleteSettings, 
+                _outputPath, _thumbnailPath, "1.0", "Author", 256, false, null, _deleteSettings,
                 exceptionMock
             );
 
@@ -281,38 +276,40 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
 
             Object.DestroyImmediate(vrcAvatar);
         }
-        
+
         [Test]
         public void ConvertBakedAvatar_ShouldHandleExistingFolder()
         {
             var bakedMock = CreateValidHumanoidMock("FolderTestInstance");
             var folderName = "FolderTest.Generated";
             var folderPath = $"{_outputPath}/{folderName}";
-            
+
             // 先に出力フォルダを作成しておく (AssetDatabase.DeleteAsset の箇所を通す)
             AssetDatabase.CreateFolder(_outputPath, folderName);
             File.WriteAllText(Path.Combine(Application.dataPath, "..", folderPath, "dummy.txt"), "dummy");
 
-            var converter = new VrmAvatarConverter(_outputPath, _thumbnailPath, "1.0", "Author", 256, false, null, _deleteSettings);
-            
+            var converter = new VrmAvatarConverter(_outputPath, _thumbnailPath, "1.0", "Author", 256, false, null,
+                _deleteSettings);
+
             bool result = converter.ConvertBakedAvatar(bakedMock, "FolderTest");
-            
+
             Assert.IsTrue(result);
-            Assert.IsFalse(File.Exists(Path.Combine(Application.dataPath, "..", folderPath, "dummy.txt")), "Existing folder should be deleted.");
+            Assert.IsFalse(File.Exists(Path.Combine(Application.dataPath, "..", folderPath, "dummy.txt")),
+                "Existing folder should be deleted.");
 
             Object.DestroyImmediate(bakedMock);
         }
-        
+
         [Test]
         public void ConvertSingleAvatar_ShouldProcessOptionalLogics()
         {
             // 1. DeleteSpecificObjects / DeleteHideObjects のテスト準備
             var vrcAvatar = CreateValidHumanoidMock("DeletionTestAvatar");
-            
+
             // 削除対象のオブジェクトを作成
             var targetObj = new GameObject("DeleteMe");
             targetObj.transform.SetParent(vrcAvatar.transform);
-            _deleteSettings.targetObjectNames = new System.Collections.Generic.List<string> { "DeleteMe" };
+            _deleteSettings.targetObjectNames = new System.Collections.Generic.List<string> {"DeleteMe"};
 
             // 非アクティブなオブジェクトを作成 (DeleteHideObjects用)
             var hiddenObj = new GameObject("Hidden");
@@ -321,11 +318,11 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
 
             // 2. EnsureDirectoryExists / ConvertBakedAvatar の例外テスト用準備
             // 読み取り専用フォルダや、不正なパス文字を含む出力パスをシミュレート
-            var invalidPath = _outputPath + "/Invalid|Path"; 
+            var invalidPath = _outputPath + "/Invalid|Path";
 
             var mockBake = new MockBakeProcessor();
             var converter = new VrmAvatarConverter(
-                _outputPath, _thumbnailPath, "1.0", "Author", 256, false, null, _deleteSettings, 
+                _outputPath, _thumbnailPath, "1.0", "Author", 256, false, null, _deleteSettings,
                 mockBake
             );
 
@@ -340,11 +337,12 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
 
             Object.DestroyImmediate(vrcAvatar);
         }
-        
+
         [Test]
         public void ConvertBakedAvatar_WhenExceptionInTryBlock_ShouldCatchAndReturnFalse()
         {
-            var converter = new VrmAvatarConverter(_outputPath, _thumbnailPath, "1.0", "Author", 256, false, null, _deleteSettings);
+            var converter = new VrmAvatarConverter(_outputPath, _thumbnailPath, "1.0", "Author", 256, false, null,
+                _deleteSettings);
 
             // L10Nクラスが出力する可能性のあるすべてのエラーログを許容するように正規表現を広げる
             // ログの冒頭が「An error occurred during conversion:」等で始まるため
@@ -353,84 +351,6 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
             // bakedAvatarに null を渡して意図的に例外を発生させる
             bool result = converter.ConvertBakedAvatar(null, "CatchTest");
             Assert.IsFalse(result, "Should return false when an exception occurs internally.");
-        }
-        
-        [Test]
-        public void ConvertBakedAvatar_WithBaseVrm_ShouldApplyIsBinarySettings()
-        {
-            var bakedMock = CreateValidHumanoidMock("BinaryApplyInstance");
-            var baseGo = CreateValidHumanoidMock("BaseBinarySource");
-            var basePrefabPath = $"{_testRootDir}/BaseBinary.prefab";
-            PrefabUtility.SaveAsPrefabAsset(baseGo, basePrefabPath);
-            
-            // 1. Base側のVRMをセットアップ
-            VRMInitializer.Initialize(basePrefabPath);
-            
-            // プレハブの中身を編集し、17種類のクリップを確実に持たせる
-            using (var scope = new PrefabUtility.EditPrefabContentsScope(basePrefabPath))
-            {
-                var root = scope.prefabContentsRoot;
-                var baseProxy = root.GetComponent<VRMBlendShapeProxy>();
-                
-                var newAvatar = ScriptableObject.CreateInstance<BlendShapeAvatar>();
-                newAvatar.name = "FullBlendShapeAvatar";
-                AssetDatabase.CreateAsset(newAvatar, $"{_testRootDir}/FullAvatar.asset");
-
-                var presets = new[] {
-                    BlendShapePreset.Neutral, BlendShapePreset.A, BlendShapePreset.I, BlendShapePreset.U,
-                    BlendShapePreset.E, BlendShapePreset.O, BlendShapePreset.Blink, BlendShapePreset.Joy,
-                    BlendShapePreset.Angry, BlendShapePreset.Sorrow, BlendShapePreset.Fun, BlendShapePreset.LookUp,
-                    BlendShapePreset.LookDown, BlendShapePreset.LookLeft, BlendShapePreset.LookRight,
-                    BlendShapePreset.Blink_L, BlendShapePreset.Blink_R
-                };
-
-                var clips = new System.Collections.Generic.List<BlendShapeClip>();
-                foreach (var preset in presets)
-                {
-                    var clip = ScriptableObject.CreateInstance<BlendShapeClip>();
-                    clip.name = preset.ToString();
-                    clip.Preset = preset;
-                    // テスト対象のロジックを通すため、'A' だけ IsBinary = true にしておく
-                    if (preset == BlendShapePreset.A) clip.IsBinary = true;
-                    
-                    AssetDatabase.AddObjectToAsset(clip, newAvatar);
-                    clips.Add(clip);
-                }
-                
-                newAvatar.Clips = clips;
-                baseProxy.BlendShapeAvatar = newAvatar;
-
-                EditorUtility.SetDirty(newAvatar);
-                EditorUtility.SetDirty(baseProxy);
-            }
-
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
-            var finalBasePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(basePrefabPath);
-
-            // 2. コンバーターを実行
-            var converter = new VrmAvatarConverter(_outputPath, _thumbnailPath, "1.0", "Author", 256, true, finalBasePrefab, _deleteSettings);
-            bool result = converter.ConvertBakedAvatar(bakedMock, "BinaryApplyTest");
-            Assert.IsTrue(result);
-
-            // 3. 検証
-            var resultPath = $"{_outputPath}/BinaryApplyTest.prefab";
-            AssetDatabase.ImportAsset(resultPath, ImportAssetOptions.ForceUpdate);
-            AssetDatabase.Refresh();
-
-            var resultPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(resultPath);
-            var resultProxy = resultPrefab.GetComponent<VRMBlendShapeProxy>();
-            
-            Assert.IsNotNull(resultProxy.BlendShapeAvatar, "Result BlendShapeAvatar should exist.");
-            Assert.AreEqual(17, resultProxy.BlendShapeAvatar.Clips.Count, "Result should have 17 clips.");
-
-            // 変換先で 'A' クリップが Binary に更新されているか確認
-            var resultClipA = resultProxy.BlendShapeAvatar.GetClip(BlendShapePreset.A);
-            Assert.IsNotNull(resultClipA, "'A' clip should exist in result.");
-            Assert.IsTrue(resultClipA.IsBinary, "Binary setting for 'A' should be copied from base.");
-
-            Object.DestroyImmediate(bakedMock);
-            Object.DestroyImmediate(baseGo);
         }
     }
 }

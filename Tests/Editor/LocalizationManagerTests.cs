@@ -33,7 +33,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
             LocalizationManager.IsJapanese = false;
             InvokeAllL10NProperties();
         }
-        
+
         /// <summary>
         /// L10N内のすべての静的文字列プロパティが、指定した言語に対応しているか再帰的にチェックします
         /// </summary>
@@ -43,7 +43,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
 
             var l10NType = typeof(L10N);
             CheckPropertiesRecursive(l10NType, expectJapanese);
-            
+
             if (expectJapanese)
             {
                 AssertConsistencyRecursive(l10NType);
@@ -77,7 +77,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
                     // 英語モードの時は、日本語特有の文字（ひらがな、カタカナ、漢字）が含まれていないことを確認
                     // 全角の「」などは英語テキスト内でもUI名称の引用として使われる可能性があるため許容する
                     var hasJapaneseMap = Regex.IsMatch(value, @"[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]");
-                    
+
                     // 例外: "Language / 言語" のような項目は英語モードでも日本語が含まれる可能性があるため除外
                     if (prop.Name == "Language") continue;
 
@@ -93,7 +93,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
                 CheckPropertiesRecursive(nestedType, expectJapanese);
             }
         }
-        
+
         private static void AssertConsistencyRecursive(System.Type type)
         {
             var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Static);
@@ -104,9 +104,9 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
 
                 // 日本語と英語それぞれの値を強制的に取得
                 LocalizationManager.IsJapanese = true;
-                var jpVal = (string)prop.GetValue(null);
+                var jpVal = (string) prop.GetValue(null);
                 LocalizationManager.IsJapanese = false;
-                var enVal = (string)prop.GetValue(null);
+                var enVal = (string) prop.GetValue(null);
 
                 var context = $"{type.Name}.{prop.Name}";
 
@@ -120,7 +120,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
 
                 // 2. 特殊記号や改行コードの有無をチェック
                 // 改行コードの数
-                Assert.AreEqual(jpVal.Count(c => c == '\n'), enVal.Count(c => c == '\n'), 
+                Assert.AreEqual(jpVal.Count(c => c == '\n'), enVal.Count(c => c == '\n'),
                     $"Line break count mismatch in {context}");
             }
 
@@ -129,8 +129,8 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
                 AssertConsistencyRecursive(nestedType);
             }
         }
-        
-        private void InvokeAllL10NProperties()
+
+        private static void InvokeAllL10NProperties()
         {
             // Converter 関連
             Assert.IsNotEmpty(L10N.Converter.AvatarElement(0));
