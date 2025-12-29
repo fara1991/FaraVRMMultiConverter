@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Esperecyan.UniVRMExtensions;
-using nadena.dev.ndmf;
 using UnityEditor;
 using UnityEngine;
 using VRM;
@@ -23,6 +22,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
         private readonly bool _isVrmComponentCopy;
         private readonly GameObject _baseVrmPrefab;
         private readonly DeleteSpecificObjectsSettings _deleteSettings;
+        private readonly IVrmBakeProcessor _bakeProcessor;
 
         public VrmAvatarConverter(
             string vrmOutputPath,
@@ -32,7 +32,8 @@ namespace Fara.FaraVRMMultiConverter.Editor
             int thumbnailResolution,
             bool isVrmComponentCopy,
             GameObject baseVrmPrefab,
-            DeleteSpecificObjectsSettings settings)
+            DeleteSpecificObjectsSettings settings,
+            IVrmBakeProcessor bakeProcessor = null)
         {
             _vrmOutputPath = vrmOutputPath;
             _vrmThumbnailPath = vrmThumbnailPath;
@@ -42,6 +43,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
             _isVrmComponentCopy = isVrmComponentCopy;
             _baseVrmPrefab = baseVrmPrefab;
             _deleteSettings = settings;
+            _bakeProcessor = bakeProcessor ?? new DefaultVrmBakeProcessor();
         }
 
         public bool ConvertSingleAvatar(GameObject selectedVrcPrefab)
@@ -62,63 +64,14 @@ namespace Fara.FaraVRMMultiConverter.Editor
                 DeleteHideObjects(vrcAvatarInstance);
 
                 // 1. ベイク処理
-                try
-                {
-                    var uniqueTempDir = $"Assets/ZZZ_GeneratedAssets_{avatarName}_{Guid.NewGuid().ToString()[..8]}";
-                    using (new OverrideTemporaryDirectoryScope(uniqueTempDir))
-                    {
-                        AvatarProcessor.ProcessAvatar(vrcAvatarInstance);
-                    }
+                bakedAvatar = _bakeProcessor.ProcessBake(vrcAvatarInstance, avatarName);
 
-                    bakedAvatar = FindBakedAvatar(vrcAvatarInstance.name);
-                    if (!bakedAvatar) return false;
-                }
-                catch (Exception bakeException)
-                {
-                    Debug.LogError($"ベイク中にエラーが発生しました: {bakeException.Message}");
-                    return false;
-                }
-
-                DeleteUtility.DeleteVrcComponentsRecursive(bakedAvatar);
-                bakedAvatar.name = avatarName;
-                bakedAvatar.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
-
-                // 2. 出力フォルダの準備
-                var generatedFolderName = $"{avatarName}.Generated";
-                var generatedFolderPath = $"{_vrmOutputPath}/{generatedFolderName}";
-
-                // 既存のフォルダを削除して中身をリセット
-                if (AssetDatabase.IsValidFolder(generatedFolderPath))
-                {
-                    AssetDatabase.DeleteAsset(generatedFolderPath);
-                }
-
-                // 親ディレクトリを確認してからフォルダ作成
-                EnsureDirectoryExists(_vrmOutputPath);
-                AssetDatabase.CreateFolder(_vrmOutputPath, generatedFolderName);
-
-                // 3. アセットの永続化
-                // メモリ上のアセットを物理ファイルにして差し替える
-                PersistAssetsToFolder(bakedAvatar, generatedFolderPath);
-
-                // 4. VRM Prefabの保存
-                var prefabCreator = new VrmPrefabCreator(_vrmOutputPath);
-                var finalPath = prefabCreator.CreateVrmPrefab(bakedAvatar);
-
-                if (string.IsNullOrEmpty(finalPath)) return false;
-
-                // 5. VRMセットアップ
-                AssetDatabase.ImportAsset(finalPath, ImportAssetOptions.ForceUpdate);
-                VRMInitializer.Initialize(finalPath);
-
-                if (_isVrmComponentCopy && _baseVrmPrefab) CopySettingsFromBase(finalPath);
-
-                UpdateAndFinalizeVrm(finalPath, avatarName);
-                return true;
+                // 2. VRM変換ロジックの実行
+                return ConvertBakedAvatar(bakedAvatar, avatarName);
             }
             catch (Exception e)
             {
-                Debug.LogError($"VRM変換失敗: {e}");
+                Debug.LogError(L10N.Converter.Errors.ConversionError(e.Message));
                 return false;
             }
             finally
@@ -128,7 +81,66 @@ namespace Fara.FaraVRMMultiConverter.Editor
             }
         }
 
-        private void PersistAssetsToFolder(GameObject avatar, string folderPath)
+        /// <summary>
+        /// ベイク済みのオブジェクトを受け取り、VRMへの最終セットアップを行う
+        /// </summary>
+        public bool ConvertBakedAvatar(GameObject bakedAvatar, string avatarName)
+        {
+            try
+            {
+                DeleteUtility.DeleteVrcComponentsRecursive(bakedAvatar);
+                bakedAvatar.name = avatarName;
+                bakedAvatar.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+
+                // 出力フォルダの準備
+                var generatedFolderName = $"{avatarName}.Generated";
+                var generatedFolderPath = $"{_vrmOutputPath}/{generatedFolderName}";
+
+                if (AssetDatabase.IsValidFolder(generatedFolderPath))
+                {
+                    AssetDatabase.DeleteAsset(generatedFolderPath);
+                }
+
+                AssetDatabase.CreateFolder(_vrmOutputPath, generatedFolderName);
+
+                // アセットの永続化
+                PersistAssetsToFolder(bakedAvatar, generatedFolderPath);
+
+                // VRM Prefabの保存
+                var prefabCreator = new VrmPrefabCreator(_vrmOutputPath);
+                var vrmPrefabPath = prefabCreator.CreateVrmPrefab(bakedAvatar);
+
+                // VRMセットアップ
+                AssetDatabase.ImportAsset(vrmPrefabPath, ImportAssetOptions.ForceUpdate);
+                VRMInitializer.Initialize(vrmPrefabPath);
+                AssetDatabase.Refresh();
+
+                var vrmPrefab = PrefabUtility.LoadPrefabContents(vrmPrefabPath);
+
+                if (_isVrmComponentCopy && _baseVrmPrefab) CopySettingsFromBase(vrmPrefab);
+                VrmMetaUpdater.UpdateMeta(
+                    vrmPrefab,
+                    vrmPrefabPath,
+                    avatarName,
+                    _vrmVersion,
+                    _vrmAuthor,
+                    _vrmThumbnailPath,
+                    _thumbnailResolution
+                );
+                FinalizeVrmInternalAssets(vrmPrefab, avatarName);
+
+                PrefabUtility.SaveAsPrefabAsset(vrmPrefab, vrmPrefabPath);
+                PrefabUtility.UnloadPrefabContents(vrmPrefab);
+                return true;
+            }
+            catch (Exception e)
+            {
+                Debug.LogError(L10N.Converter.Errors.ConversionError(e.Message));
+                return false;
+            }
+        }
+
+        private static void PersistAssetsToFolder(GameObject avatar, string folderPath)
         {
             var processedAssets = new Dictionary<UnityEngine.Object, UnityEngine.Object>();
 
@@ -189,10 +201,9 @@ namespace Fara.FaraVRMMultiConverter.Editor
             }
 
             AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
         }
 
-        private void PersistMaterialTextures(Material mat, string folderPath,
+        private static void PersistMaterialTextures(Material mat, string folderPath,
             Dictionary<UnityEngine.Object, UnityEngine.Object> cache)
         {
             var shader = mat.shader;
@@ -225,28 +236,9 @@ namespace Fara.FaraVRMMultiConverter.Editor
 
         private static bool IsTemporaryAsset(UnityEngine.Object obj)
         {
-            if (obj == null) return false;
+            if (obj is null) return false;
             var path = AssetDatabase.GetAssetPath(obj);
             return string.IsNullOrEmpty(path) || path.Contains("ZZZ_GeneratedAssets_");
-        }
-
-        private static GameObject FindBakedAvatar(string name)
-        {
-            var rootObjs = UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects();
-            foreach (var obj in rootObjs)
-            {
-                if (obj.name == name) return obj;
-            }
-
-            return rootObjs.FirstOrDefault(obj => obj.name.Contains(name));
-        }
-
-        private void UpdateAndFinalizeVrm(string vrmPrefabPath, string avatarName)
-        {
-            VrmMetaUpdater.UpdateMeta(
-                vrmPrefabPath, avatarName, _vrmVersion, _vrmAuthor, _vrmThumbnailPath, _thumbnailResolution);
-            FinalizeVrmInternalAssets(vrmPrefabPath, avatarName);
-            if (_isVrmComponentCopy && _baseVrmPrefab) ApplyIsBinarySettings(vrmPrefabPath);
         }
 
         private void DeleteSpecificObjects(GameObject target)
@@ -268,26 +260,25 @@ namespace Fara.FaraVRMMultiConverter.Editor
             }
         }
 
-        private void CopySettingsFromBase(string vrmPrefabPath)
+        private void CopySettingsFromBase(GameObject vrmPrefab)
         {
-            var destinationPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(vrmPrefabPath);
-            if (destinationPrefab)
-                CopyVRMSettings.Copy(_baseVrmPrefab, destinationPrefab, CopyVRMSettings.SupportedComponents.ToList());
+            var tempInstance = UnityEngine.Object.Instantiate(vrmPrefab);
+
+            CopyVRMSettings.Copy(_baseVrmPrefab, tempInstance, CopyVRMSettings.SupportedComponents.ToList());
+            EditorUtility.CopySerialized(tempInstance.GetComponent<VRMBlendShapeProxy>(),
+                vrmPrefab.GetComponent<VRMBlendShapeProxy>());
+            ApplyIsBinarySettings(vrmPrefab);
+
+            UnityEngine.Object.DestroyImmediate(tempInstance);
         }
 
-        private void FinalizeVrmInternalAssets(string vrmPrefabPath, string avatarName)
+        private void FinalizeVrmInternalAssets(GameObject vrmPrefab, string avatarName)
         {
-            var vrmPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(vrmPrefabPath);
-            if (!vrmPrefab) return;
-
             BlendShapeAvatar finalizedBlendShapeAvatar = null;
             var blendProxy = vrmPrefab.GetComponent<VRMBlendShapeProxy>();
             if (blendProxy && blendProxy.BlendShapeAvatar)
             {
                 var folderPath = $"{_vrmOutputPath}/{avatarName}.BlendShapes";
-                if (!AssetDatabase.IsValidFolder(folderPath))
-                    AssetDatabase.CreateFolder(_vrmOutputPath, $"{avatarName}.BlendShapes");
-
                 var clips = new List<BlendShapeClip>();
                 var baseProxy = _baseVrmPrefab?.GetComponent<VRMBlendShapeProxy>();
                 foreach (var sourceClip in blendProxy.BlendShapeAvatar.Clips)
@@ -318,21 +309,27 @@ namespace Fara.FaraVRMMultiConverter.Editor
             var metaAssetPath = $"{_vrmOutputPath}/{avatarName}.MetaObject/Meta.asset";
             var finalizedMeta = AssetDatabase.LoadAssetAtPath<VRMMetaObject>(metaAssetPath);
 
-            using var scope = new PrefabUtility.EditPrefabContentsScope(vrmPrefabPath);
             if (finalizedBlendShapeAvatar)
-                scope.prefabContentsRoot.GetComponent<VRMBlendShapeProxy>().BlendShapeAvatar =
-                    finalizedBlendShapeAvatar;
-            
+            {
+                var vrmBlendProxy = vrmPrefab.GetComponent<VRMBlendShapeProxy>();
+                if (vrmBlendProxy)
+                {
+                    vrmBlendProxy.BlendShapeAvatar = finalizedBlendShapeAvatar;
+                    EditorUtility.SetDirty(vrmBlendProxy);
+                }
+            }
+
             if (!finalizedMeta) return;
-            
-            var metaComp = scope.prefabContentsRoot.GetComponent<VRMMeta>();
-            if (metaComp) metaComp.Meta = finalizedMeta;
+
+            var metaComp = vrmPrefab.GetComponent<VRMMeta>();
+            if (!metaComp) return;
+
+            metaComp.Meta = finalizedMeta;
+            EditorUtility.SetDirty(metaComp);
         }
 
-        private void ApplyIsBinarySettings(string vrmPrefabPath)
+        private void ApplyIsBinarySettings(GameObject vrmPrefab)
         {
-            var vrmPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(vrmPrefabPath);
-            if (!vrmPrefab) return;
             var baseProxy = _baseVrmPrefab.GetComponent<VRMBlendShapeProxy>();
             var destProxy = vrmPrefab.GetComponent<VRMBlendShapeProxy>();
             if (!baseProxy || !baseProxy.BlendShapeAvatar || !destProxy || !destProxy.BlendShapeAvatar) return;
@@ -351,12 +348,6 @@ namespace Fara.FaraVRMMultiConverter.Editor
             }
 
             if (changed) AssetDatabase.SaveAssets();
-        }
-
-        private static void EnsureDirectoryExists(string directory)
-        {
-            if (string.IsNullOrEmpty(directory) || Directory.Exists(directory)) return;
-            Directory.CreateDirectory(directory);
         }
     }
 }

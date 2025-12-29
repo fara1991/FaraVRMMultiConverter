@@ -28,7 +28,6 @@ namespace Fara.FaraVRMMultiConverter.Editor
             var animator = avatar.GetComponent<Animator>();
             if (!animator || !animator.isHuman)
             {
-                EditorUtility.DisplayDialog(avatar.name, "HumanoidのAnimatorが必要です", "OK");
                 return "";
             }
 
@@ -70,16 +69,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
         {
             if (string.IsNullOrEmpty(directory)) return;
             if (Directory.Exists(directory)) return;
-
-            try
-            {
-                Directory.CreateDirectory(directory);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"ディレクトリの作成に失敗しました: {e.Message}");
-                throw;
-            }
+            Directory.CreateDirectory(directory);
         }
     }
 }
