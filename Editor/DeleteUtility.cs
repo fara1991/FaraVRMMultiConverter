@@ -13,14 +13,10 @@ namespace Fara.FaraVRMMultiConverter.Editor
         internal static void DeleteVrcComponentsRecursive(GameObject target)
         {
             var vrcComponents = target.GetComponentsInChildren<Component>(true)
-                .Where(c => c && c.GetType().Namespace != null &&
-                            c.GetType().Namespace!.Contains("VRC"))
+                .Where(c => c && c.GetType().Namespace != null && c.GetType().Namespace!.Contains("VRC"))
                 .ToArray();
 
-            foreach (var component in vrcComponents)
-            {
-                DestroyImmediate(component);
-            }
+            foreach (var component in vrcComponents) DestroyImmediate(component);
         }
 
         /// <summary>
@@ -48,19 +44,18 @@ namespace Fara.FaraVRMMultiConverter.Editor
 
             return count;
         }
-        
+
         private static bool IsMatch(string name, List<string> patterns, bool useRegex)
         {
             if (useRegex)
-            {
-                return patterns.Any(p => 
+                return patterns.Any(p =>
                 {
                     if (string.IsNullOrEmpty(p)) return false;
                     // ワイルドカード '*' を正規表現 '.*' に変換して判定
                     var regexPattern = "^" + Regex.Escape(p).Replace("\\*", ".*").Replace("\\?", ".") + "$";
                     return Regex.IsMatch(name, regexPattern, RegexOptions.IgnoreCase);
                 });
-            }
+
             return patterns.Contains(name);
         }
     }

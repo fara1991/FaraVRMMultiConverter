@@ -44,10 +44,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
             var l10NType = typeof(L10N);
             CheckPropertiesRecursive(l10NType, expectJapanese);
 
-            if (expectJapanese)
-            {
-                AssertConsistencyRecursive(l10NType);
-            }
+            if (expectJapanese) AssertConsistencyRecursive(l10NType);
         }
 
         private static void CheckPropertiesRecursive(System.Type type, bool expectJapanese)
@@ -88,10 +85,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
 
             // ネストされたクラス（Converter, MetaUpdaterなど）を再帰的にチェック
             var nestedTypes = type.GetNestedTypes(BindingFlags.Public | BindingFlags.Static);
-            foreach (var nestedType in nestedTypes)
-            {
-                CheckPropertiesRecursive(nestedType, expectJapanese);
-            }
+            foreach (var nestedType in nestedTypes) CheckPropertiesRecursive(nestedType, expectJapanese);
         }
 
         private static void AssertConsistencyRecursive(System.Type type)
@@ -125,9 +119,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
             }
 
             foreach (var nestedType in type.GetNestedTypes(BindingFlags.Public | BindingFlags.Static))
-            {
                 AssertConsistencyRecursive(nestedType);
-            }
         }
 
         private static void InvokeAllL10NProperties()

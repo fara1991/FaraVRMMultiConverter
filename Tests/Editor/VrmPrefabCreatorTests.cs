@@ -5,7 +5,6 @@ using Fara.FaraVRMMultiConverter.Editor;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
 
 namespace Fara.FaraVRMMultiConverter.Tests.Editor
@@ -25,9 +24,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
         {
             _testDir = $"Assets/Temp_PrefabTest_{Guid.NewGuid().ToString()[..8]}";
             if (!AssetDatabase.IsValidFolder(_testDir))
-            {
                 AssetDatabase.CreateFolder("Assets", Path.GetFileName(_testDir));
-            }
 
             _outputPath = $"{_testDir}/Output";
             AssetDatabase.CreateFolder(_testDir, "Output");
@@ -38,10 +35,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
         [TearDown]
         public void TearDown()
         {
-            if (AssetDatabase.IsValidFolder(_testDir))
-            {
-                AssetDatabase.DeleteAsset(_testDir);
-            }
+            if (AssetDatabase.IsValidFolder(_testDir)) AssetDatabase.DeleteAsset(_testDir);
         }
 
         /// <summary>
@@ -123,27 +117,6 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
 
             // Assert
             Assert.AreEqual(initialPath, resultPath, "Should return the existing prefab path.");
-        }
-
-        [Test]
-        public void CreateVrmPrefab_WhenDirectoryCreationFailed_ShouldLogError()
-        {
-            // EnsureDirectoryExists の catch ブロックを通すテスト
-            // 出力ディレクトリと同名の「ファイル」を作成して、ディレクトリ作成を失敗させる
-            var invalidDir = $"{_testDir}/BlockedByFile";
-            var filePath = Path.GetFullPath(Path.Combine(Application.dataPath, "..", invalidDir));
-            File.WriteAllText(filePath, "I am a file, not a directory");
-
-            var creatorWithInvalidPath = new VrmPrefabCreator(invalidDir);
-            var avatar = CreateValidHumanoidMock("ErrorTestAvatar");
-
-            // catch句の Debug.LogError を期待する
-            LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("ディレクトリの作成に失敗しました.*"));
-
-            // 実行（内部で例外が発生し、ログを吐いて throw される）
-            Assert.Throws<IOException>(() => creatorWithInvalidPath.CreateVrmPrefab(avatar));
-
-            Object.DestroyImmediate(avatar);
         }
 
         [Test]

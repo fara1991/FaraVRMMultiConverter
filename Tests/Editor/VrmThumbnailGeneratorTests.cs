@@ -24,10 +24,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
         public void TearDown()
         {
             // GameObjectの破棄
-            if (_avatarInstance != null)
-            {
-                Object.DestroyImmediate(_avatarInstance);
-            }
+            if (_avatarInstance != null) Object.DestroyImmediate(_avatarInstance);
 
             // 生成されたテストアセットの削除
             if (Directory.Exists(TestThumbnailPath))
@@ -51,7 +48,8 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
             if (!Directory.Exists(TestThumbnailPath)) Directory.CreateDirectory(TestThumbnailPath);
             var dummy = new Texture2D(2, 2);
             File.WriteAllBytes(Path.Combine(TestThumbnailPath, name + ".png"), dummy.EncodeToPNG());
-            AssetDatabase.ImportAsset(Path.Combine(TestThumbnailPath, name + ".png"), ImportAssetOptions.ForceSynchronousImport);
+            AssetDatabase.ImportAsset(Path.Combine(TestThumbnailPath, name + ".png"),
+                ImportAssetOptions.ForceSynchronousImport);
 
             Assert.IsTrue(VrmThumbnailGenerator.ThumbnailExists(name, TestThumbnailPath), "保存後は存在する");
         }
@@ -62,10 +60,10 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
             // 1. 新規生成パス (EnsureThumbnailDirectoryExists -> CreateThumbnailFromCamera)
             var prefabName = "NewAvatarThumbnail";
             var result = VrmThumbnailGenerator.GetOrCreateThumbnail(
-                prefabName, 
-                _avatarInstance, 
-                TestThumbnailPath, 
-                (int)VrmThumbnailGenerator.ThumbnailResolution.Resolution512);
+                prefabName,
+                _avatarInstance,
+                TestThumbnailPath,
+                (int) VrmThumbnailGenerator.ThumbnailResolution.Resolution512);
 
             Assert.IsNotNull(result);
             Assert.AreEqual(512, result.width);
@@ -74,8 +72,8 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
             // 2. 既存取得パス (FindExistingThumbnail)
             // ログに「既存のサムネイルを使用します」が出るルート
             var secondResult = VrmThumbnailGenerator.GetOrCreateThumbnail(
-                prefabName, 
-                _avatarInstance, 
+                prefabName,
+                _avatarInstance,
                 TestThumbnailPath);
 
             Assert.AreEqual(result, secondResult, "二回目は同じアセットを返すべき");
@@ -86,7 +84,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
         {
             // メインカメラを一時的に隠す
             var mainCam = Camera.main;
-            string originalTag = "";
+            var originalTag = "";
             if (mainCam != null)
             {
                 originalTag = mainCam.tag;
@@ -96,7 +94,8 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
             try
             {
                 // カメラがない状態で生成を試みる
-                var result = VrmThumbnailGenerator.GetOrCreateThumbnail("NoCamTest", _avatarInstance, TestThumbnailPath);
+                var result =
+                    VrmThumbnailGenerator.GetOrCreateThumbnail("NoCamTest", _avatarInstance, TestThumbnailPath);
                 Assert.IsNotNull(result, "カメラが無くても自動生成して動くべき");
             }
             finally
@@ -128,12 +127,12 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
         public void RenderThumbnail_WithInvalidResolution_FallsBackTo1024()
         {
             // enumにない適当な数値
-            int invalidRes = 999; 
-            
+            var invalidRes = 999;
+
             var result = VrmThumbnailGenerator.GetOrCreateThumbnail(
-                "FallbackTest", 
-                _avatarInstance, 
-                TestThumbnailPath, 
+                "FallbackTest",
+                _avatarInstance,
+                TestThumbnailPath,
                 invalidRes);
 
             Assert.AreEqual(1024, result.width, "不正な解像度は1024にフォールバックされるべき");
@@ -144,16 +143,17 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
         {
             // warmupRendersとextraDelayMillisecondsを通過させる
             // 内部でThread.Sleepが走る
-            Assert.DoesNotThrow(() => {
+            Assert.DoesNotThrow(() =>
+            {
                 VrmThumbnailGenerator.GetOrCreateThumbnail(
-                    "WarmupTest", 
-                    _avatarInstance, 
-                    TestThumbnailPath, 
-                    warmupRenders: 1, 
+                    "WarmupTest",
+                    _avatarInstance,
+                    TestThumbnailPath,
+                    warmupRenders: 1,
                     extraDelayMilliseconds: 10);
             });
         }
-        
+
         [Test]
         public void CreateThumbnail_FromPrefabStage_ShouldPassThroughInstantiatePath()
         {
@@ -168,7 +168,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
                 // 2. プレハブをPrefabモードで開く
                 var prefabAsset = AssetDatabase.LoadAssetAtPath<GameObject>(tempPrefabPath);
                 AssetDatabase.OpenAsset(prefabAsset);
-                
+
                 // PrefabStage（現在開いているPrefab編集画面）を取得
                 var stage = UnityEditor.SceneManagement.PrefabStageUtility.GetCurrentPrefabStage();
                 Assert.IsNotNull(stage, "PrefabStageを開くことに失敗しました");
@@ -186,7 +186,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
 
                 // Assert
                 Assert.IsNotNull(result, "PrefabStage内のオブジェクトからサムネイルが生成されること");
-                
+
                 // 4. Prefabモードを閉じる
                 UnityEditor.SceneManagement.StageUtility.GoToMainStage();
             }

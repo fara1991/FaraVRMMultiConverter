@@ -22,9 +22,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
         {
             _testDir = $"Assets/Temp_Test_{System.Guid.NewGuid()}";
             if (!AssetDatabase.IsValidFolder(_testDir))
-            {
                 AssetDatabase.CreateFolder("Assets", Path.GetFileName(_testDir));
-            }
 
             _prefabPath = $"{_testDir}/{TestPrefabName}.prefab";
 
@@ -38,10 +36,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
         [TearDown]
         public void TearDown()
         {
-            if (AssetDatabase.IsValidFolder(_testDir))
-            {
-                AssetDatabase.DeleteAsset(_testDir);
-            }
+            if (AssetDatabase.IsValidFolder(_testDir)) AssetDatabase.DeleteAsset(_testDir);
 
             PrefabUtility.UnloadPrefabContents(_testAvatar);
         }

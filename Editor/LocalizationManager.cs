@@ -50,7 +50,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
         // VRChatToVrmConverter 用
         public static class Converter
         {
-            public static string WindowTitle => "VRM Multi-Converter";
+            public static string WindowTitle => "VRMMultiConverter";
             public static string Language => LocalizationManager.Get("言語 / Language", "Language / 言語");
             public static string HowToUseHeader => LocalizationManager.Get("使い方手順", "Instructions for use");
 
@@ -110,15 +110,21 @@ namespace Fara.FaraVRMMultiConverter.Editor
             // 複数アバター対応
             public static string AvatarCount => LocalizationManager.Get("変換アバター数", "Avatar Count");
 
-            public static string AvatarElement(int index) => LocalizationManager.Get(
-                $"変換アバター{index + 1}体目",
-                $"Avatar {index + 1}"
-            );
+            public static string AvatarElement(int index)
+            {
+                return LocalizationManager.Get(
+                    $"変換アバター{index + 1}体目",
+                    $"Avatar {index + 1}"
+                );
+            }
 
-            public static string ThumbnailsAlreadyExist(string avatarNames) => LocalizationManager.Get(
-                $"以下のアバターのサムネイルが既に存在します:\n{avatarNames}",
-                $"Thumbnails already exist for the following avatars:\n{avatarNames}"
-            );
+            public static string ThumbnailsAlreadyExist(string avatarNames)
+            {
+                return LocalizationManager.Get(
+                    $"以下のアバターのサムネイルが既に存在します:\n{avatarNames}",
+                    $"Thumbnails already exist for the following avatars:\n{avatarNames}"
+                );
+            }
 
             public static string AllThumbnailsExist => LocalizationManager.Get(
                 "すべてのアバターのサムネイルが既に存在するため、サムネイル作成はスキップされます",
@@ -132,11 +138,13 @@ namespace Fara.FaraVRMMultiConverter.Editor
 
             public static string Converting => LocalizationManager.Get("VRM変換中", "Converting to VRM");
 
-            public static string ConvertingProgress(string avatarName, int current, int total) =>
-                LocalizationManager.Get(
+            public static string ConvertingProgress(string avatarName, int current, int total)
+            {
+                return LocalizationManager.Get(
                     $"{avatarName} を変換中... ({current}/{total})",
                     $"Converting {avatarName}... ({current}/{total})"
                 );
+            }
 
             public static string SettingsFileHeader => LocalizationManager.Get("設定ファイル", "Settings file");
 
@@ -153,15 +161,21 @@ namespace Fara.FaraVRMMultiConverter.Editor
 
             public static string OpenSettingsFile => LocalizationManager.Get("設定ファイルを開く", "Open Settings File");
 
-            public static string TargetObjectsInfo(int count) => LocalizationManager.Get(
-                $"削除対象: {count}個のオブジェクト名が登録されています\n「VRC → VRMに変換するアバター」を再帰的に検索して削除します",
-                $"Targets: {count} object names registered\nRecursively search for and delete 「VRC → VRM Conversion Avatar」"
-            );
+            public static string TargetObjectsInfo(int count)
+            {
+                return LocalizationManager.Get(
+                    $"削除対象: {count}個のオブジェクト名が登録されています\n「VRC → VRMに変換するアバター」を再帰的に検索して削除します",
+                    $"Targets: {count} object names registered\nRecursively search for and delete 「VRC → VRM Conversion Avatar」"
+                );
+            }
 
-            public static string SettingsFileCreated(string path) => LocalizationManager.Get(
-                $"設定ファイルを作成しました。\n\n{path}",
-                $"Settings file created.\n\n{path}"
-            );
+            public static string SettingsFileCreated(string path)
+            {
+                return LocalizationManager.Get(
+                    $"設定ファイルを作成しました。\n\n{path}",
+                    $"Settings file created.\n\n{path}"
+                );
+            }
 
             public static class SettingsEditor
             {
@@ -175,8 +189,10 @@ namespace Fara.FaraVRMMultiConverter.Editor
                 public static string TargetObjectNames =>
                     LocalizationManager.Get("削除対象のオブジェクト名", "Target Object Names");
 
-                public static string RegisteredCount(int count) =>
-                    LocalizationManager.Get($"登録数: {count}個", $"Registered: {count}");
+                public static string RegisteredCount(int count)
+                {
+                    return LocalizationManager.Get($"登録数: {count}個", $"Registered: {count}");
+                }
             }
 
             // エラーメッセージ
@@ -192,18 +208,24 @@ namespace Fara.FaraVRMMultiConverter.Editor
                     "VRM Output Path is not set"
                 );
 
-                public static string ConversionError(string message) => LocalizationManager.Get(
-                    $"変換中にエラーが発生しました:\n{message}",
-                    $"An error occurred during conversion:\n{message}"
-                );
+                public static string ConversionError(string message)
+                {
+                    return LocalizationManager.Get(
+                        $"変換中にエラーが発生しました:\n{message}",
+                        $"An error occurred during conversion:\n{message}"
+                    );
+                }
             }
 
             public static string ConversionComplete => LocalizationManager.Get("変換完了", "Conversion Complete");
 
-            public static string ConversionSummary(int success, int failed, int total) => LocalizationManager.Get(
-                $"変換完了\n\n成功: {success}\n失敗: {failed}\n合計: {total}",
-                $"Conversion Complete\n\nSucceeded: {success}\nFailed: {failed}\nTotal: {total}"
-            );
+            public static string ConversionSummary(int success, int failed, int total)
+            {
+                return LocalizationManager.Get(
+                    $"変換完了\n\n成功: {success}\n失敗: {failed}\n合計: {total}",
+                    $"Conversion Complete\n\nSucceeded: {success}\nFailed: {failed}\nTotal: {total}"
+                );
+            }
         }
 
         // VrmMetaUpdater 用
@@ -219,15 +241,21 @@ namespace Fara.FaraVRMMultiConverter.Editor
                 "=== VRM Meta Update Completed ==="
             );
 
-            public static string TargetPrefab(string path) => LocalizationManager.Get(
-                $"対象Prefab: {path}",
-                $"Target Prefab: {path}"
-            );
+            public static string TargetPrefab(string path)
+            {
+                return LocalizationManager.Get(
+                    $"対象Prefab: {path}",
+                    $"Target Prefab: {path}"
+                );
+            }
 
-            public static string PrefabName(string name) => LocalizationManager.Get(
-                $"Prefab名: {name}",
-                $"Prefab Name: {name}"
-            );
+            public static string PrefabName(string name)
+            {
+                return LocalizationManager.Get(
+                    $"Prefab名: {name}",
+                    $"Prefab Name: {name}"
+                );
+            }
 
             public static string VrmMetaComponentNotFound => LocalizationManager.Get(
                 "VRMMetaコンポーネントが存在しないため、追加します",
@@ -249,46 +277,60 @@ namespace Fara.FaraVRMMultiConverter.Editor
                 "VRMMetaObject not found, creating new one"
             );
 
-            public static string MetaObjectCreated(string path) => LocalizationManager.Get(
-                $"VRMMetaObjectを作成しました: {path}",
-                $"VRMMetaObject created: {path}"
-            );
+            public static string MetaObjectCreated(string path)
+            {
+                return LocalizationManager.Get(
+                    $"VRMMetaObjectを作成しました: {path}",
+                    $"VRMMetaObject created: {path}"
+                );
+            }
 
             public static string ThumbnailSettings => LocalizationManager.Get(
                 "--- サムネイル画像の設定 ---",
                 "--- Thumbnail Settings ---"
             );
 
-            public static string ThumbnailSet(string name, string path, int width, int height) =>
-                LocalizationManager.Get(
+            public static string ThumbnailSet(string name, string path, int width, int height)
+            {
+                return LocalizationManager.Get(
                     $"✓ サムネイルを設定しました: {name}\n  パス: {path}\n  サイズ: {width}x{height}",
                     $"✓ Thumbnail set: {name}\n  Path: {path}\n  Size: {width}x{height}"
                 );
+            }
 
             public static string MetaInfoSettings => LocalizationManager.Get(
                 "--- Meta情報の設定 ---",
                 "--- Meta Information Settings ---"
             );
 
-            public static string TitleUpdated(string oldValue, string newValue) => LocalizationManager.Get(
-                $"✓ Title: '{oldValue}' → '{newValue}'",
-                $"✓ Title: '{oldValue}' → '{newValue}'"
-            );
+            public static string TitleUpdated(string oldValue, string newValue)
+            {
+                return LocalizationManager.Get(
+                    $"✓ Title: '{oldValue}' → '{newValue}'",
+                    $"✓ Title: '{oldValue}' → '{newValue}'"
+                );
+            }
 
-            public static string VersionUpdated(string oldValue, string newValue) => LocalizationManager.Get(
-                $"✓ Version: '{oldValue}' → '{newValue}'",
-                $"✓ Version: '{oldValue}' → '{newValue}'"
-            );
+            public static string VersionUpdated(string oldValue, string newValue)
+            {
+                return LocalizationManager.Get(
+                    $"✓ Version: '{oldValue}' → '{newValue}'",
+                    $"✓ Version: '{oldValue}' → '{newValue}'"
+                );
+            }
 
             public static string VersionSkipped => LocalizationManager.Get(
                 "✗ Versionが空のため設定をスキップしました",
                 "✗ Version is empty, skipped"
             );
 
-            public static string AuthorUpdated(string oldValue, string newValue) => LocalizationManager.Get(
-                $"✓ Author: '{oldValue}' → '{newValue}'",
-                $"✓ Author: '{oldValue}' → '{newValue}'"
-            );
+            public static string AuthorUpdated(string oldValue, string newValue)
+            {
+                return LocalizationManager.Get(
+                    $"✓ Author: '{oldValue}' → '{newValue}'",
+                    $"✓ Author: '{oldValue}' → '{newValue}'"
+                );
+            }
 
             public static string AuthorSkipped => LocalizationManager.Get(
                 "✗ Authorが空のため設定をスキップしました",
@@ -312,10 +354,13 @@ namespace Fara.FaraVRMMultiConverter.Editor
                 "✓ Prefab saved successfully"
             );
 
-            public static string UpdateError(string message) => LocalizationManager.Get(
-                $"VRM Meta更新中にエラーが発生しました: {message}",
-                $"Error occurred during VRM Meta update: {message}"
-            );
+            public static string UpdateError(string message)
+            {
+                return LocalizationManager.Get(
+                    $"VRM Meta更新中にエラーが発生しました: {message}",
+                    $"Error occurred during VRM Meta update: {message}"
+                );
+            }
         }
     }
 }

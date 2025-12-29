@@ -68,7 +68,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
         /// <summary>
         /// UnityのHumanoid判定を確実にパスする最小構成のモデルを作成
         /// </summary>
-        private GameObject CreateValidHumanoidMock(string name)
+        private static GameObject CreateValidHumanoidMock(string name)
         {
             var modelAsset = AssetDatabase.LoadAssetAtPath<GameObject>(TestModelPath);
             if (modelAsset == null) Assert.Inconclusive("Test model not found at " + TestModelPath);
@@ -107,7 +107,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
                 mockBake
             );
 
-            bool result = converter.ConvertSingleAvatar(vrcAvatar);
+            var result = converter.ConvertSingleAvatar(vrcAvatar);
 
             Assert.IsTrue(result, "ConvertSingleAvatar should return true with a valid mock bake.");
 
@@ -168,7 +168,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
             var converter = new VrmAvatarConverter(_outputPath, _thumbnailPath, "1.0", "Author", 256, true, basePrefab,
                 _deleteSettings);
 
-            bool result = converter.ConvertBakedAvatar(bakedMock, "BaseCopyTest");
+            var result = converter.ConvertBakedAvatar(bakedMock, "BaseCopyTest");
 
             Assert.IsTrue(result, "Conversion should succeed with a valid Humanoid instance.");
             var resultPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{_outputPath}/BaseCopyTest.prefab");
@@ -191,7 +191,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
             var converter = new VrmAvatarConverter(_outputPath, _thumbnailPath, "1.0", "Author", 256, false, null,
                 _deleteSettings);
 
-            bool result = converter.ConvertBakedAvatar(bakedMock, "PersistenceTest");
+            var result = converter.ConvertBakedAvatar(bakedMock, "PersistenceTest");
 
             Assert.IsTrue(result);
             var genFolder = $"{_outputPath}/PersistenceTest.Generated";
@@ -232,7 +232,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
                 _deleteSettings);
 
             // 実行
-            bool result = converter.ConvertBakedAvatar(bakedMock, "ComplexTest");
+            var result = converter.ConvertBakedAvatar(bakedMock, "ComplexTest");
 
             // 検証
             Assert.IsTrue(result);
@@ -254,7 +254,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
                 _deleteSettings);
 
             // 1. ガード句のテスト (null渡し)
-            bool result = converter.ConvertSingleAvatar(null);
+            var result = converter.ConvertSingleAvatar(null);
             Assert.IsFalse(result, "Should return false for null input.");
 
             // 2. catch (Exception e) ブロックのテスト
@@ -271,7 +271,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
             // メッセージ内容を具体的に指定することで、確実にキャッチします
             LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex(".*Simulated Exception.*"));
 
-            bool exceptionResult = exceptionConverter.ConvertSingleAvatar(vrcAvatar);
+            var exceptionResult = exceptionConverter.ConvertSingleAvatar(vrcAvatar);
             Assert.IsFalse(exceptionResult, "Should return false when an exception occurs.");
 
             Object.DestroyImmediate(vrcAvatar);
@@ -291,7 +291,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
             var converter = new VrmAvatarConverter(_outputPath, _thumbnailPath, "1.0", "Author", 256, false, null,
                 _deleteSettings);
 
-            bool result = converter.ConvertBakedAvatar(bakedMock, "FolderTest");
+            var result = converter.ConvertBakedAvatar(bakedMock, "FolderTest");
 
             Assert.IsTrue(result);
             Assert.IsFalse(File.Exists(Path.Combine(Application.dataPath, "..", folderPath, "dummy.txt")),
@@ -327,7 +327,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
             );
 
             // 実行
-            bool result = converter.ConvertSingleAvatar(vrcAvatar);
+            var result = converter.ConvertSingleAvatar(vrcAvatar);
 
             // 検証
             Assert.IsTrue(result);
@@ -349,7 +349,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
             LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex(".*(conversion|エラー).*"));
 
             // bakedAvatarに null を渡して意図的に例外を発生させる
-            bool result = converter.ConvertBakedAvatar(null, "CatchTest");
+            var result = converter.ConvertBakedAvatar(null, "CatchTest");
             Assert.IsFalse(result, "Should return false when an exception occurs internally.");
         }
     }

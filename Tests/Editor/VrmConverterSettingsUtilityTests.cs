@@ -1,7 +1,6 @@
 ﻿using System.IO;
 using NUnit.Framework;
 using UnityEditor;
-using UnityEngine;
 using Fara.FaraVRMMultiConverter.Editor;
 
 namespace Fara.FaraVRMMultiConverter.Tests.Editor
@@ -48,10 +47,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
             finally
             {
                 // テスト後に作成したフォルダごと削除してクリーンアップ
-                if (AssetDatabase.IsValidFolder(rootTestFolder))
-                {
-                    AssetDatabase.DeleteAsset(rootTestFolder);
-                }
+                if (AssetDatabase.IsValidFolder(rootTestFolder)) AssetDatabase.DeleteAsset(rootTestFolder);
             }
         }
     }

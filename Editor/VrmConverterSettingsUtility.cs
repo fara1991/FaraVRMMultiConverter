@@ -25,10 +25,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
             for (var i = 1; i < folders.Length; i++)
             {
                 var newPath = currentPath + "/" + folders[i];
-                if (!AssetDatabase.IsValidFolder(newPath))
-                {
-                    AssetDatabase.CreateFolder(currentPath, folders[i]);
-                }
+                if (!AssetDatabase.IsValidFolder(newPath)) AssetDatabase.CreateFolder(currentPath, folders[i]);
                 currentPath = newPath;
             }
         }

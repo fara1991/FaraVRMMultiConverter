@@ -160,10 +160,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
                 SceneView.RepaintAll();
             }
 
-            if (extraDelayMilliseconds > 0)
-            {
-                Thread.Sleep(extraDelayMilliseconds);
-            }
+            if (extraDelayMilliseconds > 0) Thread.Sleep(extraDelayMilliseconds);
         }
 
         private class CameraInfo

@@ -20,10 +20,7 @@ namespace Fara.FaraVRMMultiConverter.Tests.Editor
         [TearDown]
         public void TearDown()
         {
-            if (_root != null)
-            {
-                Object.DestroyImmediate(_root);
-            }
+            if (_root != null) Object.DestroyImmediate(_root);
         }
 
         [Test]

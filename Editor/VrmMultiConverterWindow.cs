@@ -37,16 +37,13 @@ namespace Fara.FaraVRMMultiConverter.Editor
             English
         }
 
-        [MenuItem("FaraScripts/VRM Multi-Converter")]
+        [MenuItem("FaraScripts/VRMMultiConverter")]
         public static void ShowWindow()
         {
             var window = GetWindow<VrmMultiConverterWindow>(L10N.Converter.WindowTitle);
             window.minSize = new Vector2(500, 300);
 
-            if (EditorPrefs.HasKey(LanguagePrefKey))
-            {
-                _settingsPath = EditorPrefs.GetString(LanguagePrefKey);
-            }
+            if (EditorPrefs.HasKey(LanguagePrefKey)) _settingsPath = EditorPrefs.GetString(LanguagePrefKey);
 
             _settings = AssetDatabase.LoadAssetAtPath<DeleteSpecificObjectsSettings>(_settingsPath);
         }
@@ -101,15 +98,9 @@ namespace Fara.FaraVRMMultiConverter.Editor
             {
                 if (newSize < 0) newSize = 0;
 
-                while (newSize > _selectedVrcPrefabs.Count)
-                {
-                    _selectedVrcPrefabs.Add(null);
-                }
+                while (newSize > _selectedVrcPrefabs.Count) _selectedVrcPrefabs.Add(null);
 
-                while (newSize < _selectedVrcPrefabs.Count)
-                {
-                    _selectedVrcPrefabs.RemoveAt(_selectedVrcPrefabs.Count - 1);
-                }
+                while (newSize < _selectedVrcPrefabs.Count) _selectedVrcPrefabs.RemoveAt(_selectedVrcPrefabs.Count - 1);
             }
 
             // プラス・マイナスボタン
@@ -134,9 +125,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
 
                 // マウスクリックを検知してインデックスを記録
                 if (Event.current.type == EventType.MouseDown && rect.Contains(Event.current.mousePosition))
-                {
                     _lastFocusedIndex = i;
-                }
 
                 _selectedVrcPrefabs[i] = (GameObject) EditorGUI.ObjectField(
                     rect,
@@ -167,7 +156,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
                 // 単一オブジェクトが追加された場合
                 if (newObject is not null)
                 {
-                    VrmConverterListUtility.AddUniqueGameObjects(_selectedVrcPrefabs, new[] { newObject });
+                    VrmConverterListUtility.AddUniqueGameObjects(_selectedVrcPrefabs, new[] {newObject});
                     GUI.FocusControl(null);
                 }
             }
@@ -248,9 +237,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
             );
             GUI.enabled = true;
             if (allThumbnailsExist && thumbnailStatusList.Count > 0)
-            {
                 EditorGUILayout.HelpBox(L10N.Converter.AllThumbnailsExist, MessageType.Info);
-            }
 
             EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
 
@@ -275,10 +262,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
             if (!_settings)
             {
                 EditorGUILayout.HelpBox(L10N.Converter.SettingsFileNotFound, MessageType.Warning);
-                if (GUILayout.Button(L10N.Converter.CreateNewSettingsFile, GUILayout.Height(30)))
-                {
-                    CreateNewSettings();
-                }
+                if (GUILayout.Button(L10N.Converter.CreateNewSettingsFile, GUILayout.Height(30))) CreateNewSettings();
             }
             else
             {
@@ -299,9 +283,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
             GUILayout.Label(L10N.Converter.ConvertHeader, EditorStyles.boldLabel);
             GUI.enabled = _selectedVrcPrefabs.Any(prefab => prefab is not null);
             if (GUILayout.Button(L10N.Converter.ConvertButton, GUILayout.Height(40), GUILayout.ExpandWidth(true)))
-            {
                 ConvertMultipleToVrm();
-            }
 
             GUI.enabled = true;
 
@@ -312,7 +294,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
         {
             var index = VrmConverterListUtility.GetIndexToRemove(_selectedVrcPrefabs, _lastFocusedIndex);
             if (index < 0) return;
-            
+
             _selectedVrcPrefabs.RemoveAt(index);
             _lastFocusedIndex = -1;
         }
@@ -399,7 +381,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
                 _baseVrmPrefab,
                 _settings
             );
-            
+
             var successCount = 0;
             var failedCount = 0;
             var totalCount = validPrefabs.Count;
@@ -443,7 +425,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
                         failedAvatarNames.Add(prefab.name);
                         Debug.LogError($"✗ {prefab.name} の変換中にエラーが発生しました: {e.Message}");
                     }
-                    
+
                     AssetDatabase.SaveAssets();
                 }
             }
@@ -451,10 +433,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
             {
                 EditorUtility.ClearProgressBar();
                 var tempDirs = Directory.GetDirectories("Assets", "ZZZ_GeneratedAssets_*");
-                foreach (var dir in tempDirs)
-                {
-                    AssetDatabase.DeleteAsset(dir);
-                }
+                foreach (var dir in tempDirs) AssetDatabase.DeleteAsset(dir);
 
                 // 最後に一度だけRefresh
                 AssetDatabase.SaveAssets();
@@ -469,15 +448,9 @@ namespace Fara.FaraVRMMultiConverter.Editor
             {
                 resultMessage += "\n\n失敗したアバター:";
                 var displayCount = Mathf.Min(failedAvatarNames.Count, 10);
-                for (var i = 0; i < displayCount; i++)
-                {
-                    resultMessage += $"\n• {failedAvatarNames[i]}";
-                }
+                for (var i = 0; i < displayCount; i++) resultMessage += $"\n• {failedAvatarNames[i]}";
 
-                if (failedAvatarNames.Count > 10)
-                {
-                    resultMessage += $"\n... 他{failedAvatarNames.Count - 10}体";
-                }
+                if (failedAvatarNames.Count > 10) resultMessage += $"\n... 他{failedAvatarNames.Count - 10}体";
             }
 
             // 完了後に1回だけダイアログを表示
@@ -498,10 +471,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
                 for (var i = 1; i < folders.Length; i++)
                 {
                     var newPath = currentPath + "/" + folders[i];
-                    if (!AssetDatabase.IsValidFolder(newPath))
-                    {
-                        AssetDatabase.CreateFolder(currentPath, folders[i]);
-                    }
+                    if (!AssetDatabase.IsValidFolder(newPath)) AssetDatabase.CreateFolder(currentPath, folders[i]);
 
                     currentPath = newPath;
                 }

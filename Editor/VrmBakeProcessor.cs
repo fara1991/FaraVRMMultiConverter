@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using nadena.dev.ndmf;
 using UnityEngine;
@@ -16,6 +17,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
     /// <summary>
     /// デフォルトのベイク処理実装
     /// </summary>
+    [ExcludeFromCodeCoverage]
     public class DefaultVrmBakeProcessor : IVrmBakeProcessor
     {
         public GameObject ProcessBake(GameObject vrcAvatarInstance, string avatarName)
@@ -34,9 +36,8 @@ namespace Fara.FaraVRMMultiConverter.Editor
         {
             var rootObjs = UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects();
             foreach (var obj in rootObjs)
-            {
-                if (obj.name == name) return obj;
-            }
+                if (obj.name == name)
+                    return obj;
 
             return rootObjs.FirstOrDefault(obj => obj.name.Contains(name));
         }
