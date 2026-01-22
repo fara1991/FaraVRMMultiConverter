@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Esperecyan.UniVRMExtensions;
@@ -6,7 +6,7 @@ using UnityEditor;
 using UnityEngine;
 using VRM;
 
-namespace Fara.FaraVRMMultiConverter.Editor
+namespace Fara.FaraMultiVrmConverter.Editor
 {
     /// <summary>
     /// VRChatアバターをVRMに変換し、アセットをプレハブ内に埋め込むロジックを担当するクラス

@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
 
-namespace Fara.FaraVRMMultiConverter.Editor
+namespace Fara.FaraMultiVrmConverter.Editor
 {
     /// <summary>
     /// VRMプレハブの作成を担当するクラス
@@ -35,7 +35,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
             // 削除して作り直すよりも、既存のプレハブアセットに対して上書き保存するほうがUnityのGUIDが維持され安定します。
             PrefabUtility.SaveAsPrefabAsset(avatar, path);
 
-            Debug.Log($"✓ VRMプレハブの保存が完了しました: {path}");
+            Debug.Log($"? VRMプレハブの保存が完了しました: {path}");
             return path;
         }
 

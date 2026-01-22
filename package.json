@@ -1,6 +1,6 @@
 ﻿{
   "name": "com.fara.vrm-multi-converter",
-  "displayName": "FaraVRMMultiConverter",
+  "displayName": "FaraMultiVrmConverter",
   "version": "1.0.0",
   "unity": "2022.3",
   "description": "VRChat avatar to VRM batch converter with multiple avatar support. Includes VRM component copying, thumbnail generation, and batch conversion features.",

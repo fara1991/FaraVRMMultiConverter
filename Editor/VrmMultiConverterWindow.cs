@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -6,7 +6,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
-namespace Fara.FaraVRMMultiConverter.Editor
+namespace Fara.FaraMultiVrmConverter.Editor
 {
     [ExcludeFromCodeCoverage]
     public class VrmMultiConverterWindow : EditorWindow
@@ -25,7 +25,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
             VrmThumbnailGenerator.ThumbnailResolution.Resolution1024;
 
         private static string _settingsPath =
-            "Assets/Fara/FaraVRMMultiConverter/Editor/DeleteSpecificObjectsSettings.asset";
+            "Assets/Fara/FaraMultiVrmConverter/Editor/DeleteSpecificObjectsSettings.asset";
 
         private static DeleteSpecificObjectsSettings _settings;
         private Vector2 _scrollPosition;
@@ -410,20 +410,20 @@ namespace Fara.FaraVRMMultiConverter.Editor
                         if (converter.ConvertSingleAvatar(prefab))
                         {
                             successCount++;
-                            Debug.Log($"✓ {prefab.name} の変換が完了しました");
+                            Debug.Log($"? {prefab.name} の変換が完了しました");
                         }
                         else
                         {
                             failedCount++;
                             failedAvatarNames.Add(prefab.name);
-                            Debug.LogWarning($"✗ {prefab.name} の変換に失敗しました");
+                            Debug.LogWarning($"? {prefab.name} の変換に失敗しました");
                         }
                     }
                     catch (Exception e)
                     {
                         failedCount++;
                         failedAvatarNames.Add(prefab.name);
-                        Debug.LogError($"✗ {prefab.name} の変換中にエラーが発生しました: {e.Message}");
+                        Debug.LogError($"? {prefab.name} の変換中にエラーが発生しました: {e.Message}");
                     }
 
                     AssetDatabase.SaveAssets();
@@ -448,7 +448,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
             {
                 resultMessage += "\n\n失敗したアバター:";
                 var displayCount = Mathf.Min(failedAvatarNames.Count, 10);
-                for (var i = 0; i < displayCount; i++) resultMessage += $"\n• {failedAvatarNames[i]}";
+                for (var i = 0; i < displayCount; i++) resultMessage += $"\n? {failedAvatarNames[i]}";
 
                 if (failedAvatarNames.Count > 10) resultMessage += $"\n... 他{failedAvatarNames.Count - 10}体";
             }
