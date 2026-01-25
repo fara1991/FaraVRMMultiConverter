@@ -1,13 +1,12 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Esperecyan.UniVRMExtensions;
 using UnityEditor;
 using UnityEngine;
 using VRM;
 
-namespace Fara.FaraVRMMultiConverter.Editor
+namespace Fara.FaraMultiVrmConverter.Editor
 {
     /// <summary>
     /// VRChatアバターをVRMに変換し、アセットをプレハブ内に埋め込むロジックを担当するクラス
@@ -96,10 +95,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
                 var generatedFolderName = $"{avatarName}.Generated";
                 var generatedFolderPath = $"{_vrmOutputPath}/{generatedFolderName}";
 
-                if (AssetDatabase.IsValidFolder(generatedFolderPath))
-                {
-                    AssetDatabase.DeleteAsset(generatedFolderPath);
-                }
+                if (AssetDatabase.IsValidFolder(generatedFolderPath)) AssetDatabase.DeleteAsset(generatedFolderPath);
 
                 AssetDatabase.CreateFolder(_vrmOutputPath, generatedFolderName);
 
@@ -148,7 +144,10 @@ namespace Fara.FaraVRMMultiConverter.Editor
             {
                 // メッシュの処理
                 Mesh srcMesh = null;
-                if (renderer is SkinnedMeshRenderer smr) srcMesh = smr.sharedMesh;
+                if (renderer is SkinnedMeshRenderer smr)
+                {
+                    srcMesh = smr.sharedMesh;
+                }
                 else
                 {
                     var meshFilter = renderer.GetComponent<MeshFilter>();

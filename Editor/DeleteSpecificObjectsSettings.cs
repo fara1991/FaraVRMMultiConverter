@@ -7,6 +7,8 @@ namespace Fara.FaraVRMMultiConverter.Editor
     public class DeleteSpecificObjectsSettings : ScriptableObject
     {
         [Tooltip("削除したいオブジェクトの名前を追加してください")] public List<string> targetObjectNames = new();
-        [Tooltip("正規表現を使用してマッチングします（* を任意の文字列として扱えます）")] public bool useRegex;
+
+        [Tooltip("正規表現を使用してマッチングします（* を任意の文字列として扱えます）")]
+        public bool useRegex;
     }
 }

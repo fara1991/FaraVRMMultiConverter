@@ -1,8 +1,8 @@
-﻿using Fara.FaraVRMMultiConverter.Editor;
+using Fara.FaraMultiVrmConverter.Editor;
 using NUnit.Framework;
 using UnityEngine;
 
-namespace Fara.FaraVRMMultiConverter.Tests.Editor
+namespace Fara.FaraMultiVrmConverter.Tests.Editor
 {
     [TestFixture]
     public class DeleteSpecificObjectsSettingsTests

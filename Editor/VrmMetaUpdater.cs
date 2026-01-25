@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
 
-namespace Fara.FaraVRMMultiConverter.Editor
+namespace Fara.FaraMultiVrmConverter.Editor
 {
     /// <summary>
     /// VRM Metaデータを更新するヘルパークラス
@@ -14,7 +14,8 @@ namespace Fara.FaraVRMMultiConverter.Editor
         /// VRM Metaデータを更新
         /// </summary>
         public static void UpdateMeta(
-            GameObject vrmPrefab, string prefabPath, string prefabName, string version, string author, string thumbnailPath, int resolution
+            GameObject vrmPrefab, string prefabPath, string prefabName, string version, string author,
+            string thumbnailPath, int resolution
         )
         {
             Debug.Log(L10N.MetaUpdater.UpdateStarted);
@@ -67,9 +68,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
             var outputDir = Path.GetDirectoryName(prefabPath);
             var metaDir = $"{outputDir}/{prefabName}.MetaObject";
             if (!AssetDatabase.IsValidFolder(metaDir))
-            {
                 AssetDatabase.CreateFolder(outputDir, $"{prefabName}.MetaObject");
-            }
 
             var metaPath = $"{metaDir}/Meta.asset";
             var metaObject = AssetDatabase.LoadAssetAtPath<VRM.VRMMetaObject>(metaPath);
@@ -98,7 +97,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
             metaObject.Thumbnail = thumbnail;
             var vrmMeta = vrmPrefab.GetComponent<VRM.VRMMeta>();
             vrmMeta.Meta.Thumbnail = thumbnail;
-            
+
             Debug.Log(L10N.MetaUpdater.ThumbnailSet(
                 thumbnail.name,
                 AssetDatabase.GetAssetPath(thumbnail),
@@ -154,10 +153,7 @@ namespace Fara.FaraVRMMultiConverter.Editor
 
             Debug.Log(L10N.MetaUpdater.SavingPrefab);
             var vrmMeta = vrmPrefab.GetComponent<VRM.VRMMeta>();
-            if (vrmMeta is not null)
-            {
-                EditorUtility.SetDirty(vrmMeta);
-            }
+            if (vrmMeta is not null) EditorUtility.SetDirty(vrmMeta);
             Debug.Log(L10N.MetaUpdater.PrefabSaved);
         }
     }

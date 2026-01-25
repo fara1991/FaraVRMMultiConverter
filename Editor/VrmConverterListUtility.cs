@@ -13,12 +13,8 @@ namespace Fara.FaraVRMMultiConverter.Editor
         {
             if (additions == null) return;
             foreach (var obj in additions.Where(obj => obj != null))
-            {
                 if (!targetList.Contains(obj))
-                {
                     targetList.Add(obj);
-                }
-            }
         }
 
         /// <summary>
@@ -31,15 +27,11 @@ namespace Fara.FaraVRMMultiConverter.Editor
         {
             if (targetList == null || targetList.Count == 0) return -1;
 
-            if (lastFocusedIndex >= 0 && lastFocusedIndex < targetList.Count)
-            {
-                return lastFocusedIndex;
-            }
+            if (lastFocusedIndex >= 0 && lastFocusedIndex < targetList.Count) return lastFocusedIndex;
 
             for (var i = targetList.Count - 1; i >= 0; i--)
-            {
-                if (targetList[i] == null) return i;
-            }
+                if (targetList[i] == null)
+                    return i;
 
             return targetList.Count - 1;
         }

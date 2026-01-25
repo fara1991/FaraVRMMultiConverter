@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
 
-namespace Fara.FaraVRMMultiConverter.Editor
+namespace Fara.FaraMultiVrmConverter.Editor
 {
     /// <summary>
     /// VRMプレハブの作成を担当するクラス
@@ -26,20 +26,16 @@ namespace Fara.FaraVRMMultiConverter.Editor
             ResetUniVrmCache();
 
             var animator = avatar.GetComponent<Animator>();
-            if (!animator || !animator.isHuman)
-            {
-                return "";
-            }
+            if (!animator || !animator.isHuman) return "";
 
             // 保存先のパスを取得
             var path = GetPrefabPath(avatar);
-            EnsureDirectoryExists(Path.GetDirectoryName(path));
 
             // 直接プレハブを保存（上書き）。
             // 削除して作り直すよりも、既存のプレハブアセットに対して上書き保存するほうがUnityのGUIDが維持され安定します。
             PrefabUtility.SaveAsPrefabAsset(avatar, path);
 
-            Debug.Log($"✓ VRMプレハブの保存が完了しました: {path}");
+            Debug.Log($"? VRMプレハブの保存が完了しました: {path}");
             return path;
         }
 
@@ -56,20 +52,10 @@ namespace Fara.FaraVRMMultiConverter.Editor
         {
             // すでにプロジェクト内に同じ名前のプレハブがあるか確認
             var path = AssetDatabase.GetAssetPath(avatar);
-            if (!string.IsNullOrEmpty(path) && Path.GetExtension(path) == ".prefab")
-            {
-                return path;
-            }
+            if (!string.IsNullOrEmpty(path) && Path.GetExtension(path) == ".prefab") return path;
 
             // なければ出力ディレクトリに作成
             return $"{_vrmOutputPath}/{avatar.name}.prefab";
-        }
-
-        private static void EnsureDirectoryExists(string directory)
-        {
-            if (string.IsNullOrEmpty(directory)) return;
-            if (Directory.Exists(directory)) return;
-            Directory.CreateDirectory(directory);
         }
     }
 }

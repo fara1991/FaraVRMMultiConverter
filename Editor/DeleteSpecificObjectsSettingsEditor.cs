@@ -28,10 +28,13 @@ namespace Fara.FaraVRMMultiConverter.Editor
             EditorGUILayout.PropertyField(_useRegexProperty, new GUIContent(L10N.Converter.SettingsEditor.UseRegex));
             EditorGUILayout.Space();
 
-            EditorGUILayout.PropertyField(_targetObjectNamesProperty, new GUIContent(L10N.Converter.SettingsEditor.TargetObjectNames), true);
+            EditorGUILayout.PropertyField(_targetObjectNamesProperty,
+                new GUIContent(L10N.Converter.SettingsEditor.TargetObjectNames), true);
 
             EditorGUILayout.Space();
-            EditorGUILayout.LabelField(L10N.Converter.SettingsEditor.RegisteredCount(_targetObjectNamesProperty.arraySize), EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(
+                L10N.Converter.SettingsEditor.RegisteredCount(_targetObjectNamesProperty.arraySize),
+                EditorStyles.boldLabel);
 
             if (!serializedObject.hasModifiedProperties) return;
             serializedObject.ApplyModifiedProperties();
